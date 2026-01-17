@@ -1,0 +1,151 @@
+{
+    "actions": [],
+    "allow_import": 1,
+    "autoname": "naming_series:",
+    "creation": "2025-01-27 00:00:00",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "naming_series",
+        "section_break_wcri",
+        "otp_code",
+        "status",
+        "column_break_1",
+        "expiry",
+        "purpose",
+        "delivery_method",
+        "section_break_1",
+        "email",
+        "column_break_2",
+        "user",
+        "phone"
+    ],
+    "fields": [
+        {
+            "fieldname": "otp_code",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "OTP Code",
+            "reqd": 1
+        },
+        {
+            "default": "Valid",
+            "fieldname": "status",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "label": "Status",
+            "options": "Valid\nExpired",
+            "reqd": 1
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "expiry",
+            "fieldtype": "Datetime",
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "label": "Expiry",
+            "reqd": 1
+        },
+        {
+            "fieldname": "purpose",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "label": "Purpose",
+            "options": "sign_up\nreset_password\nLogin",
+            "reqd": 1
+        },
+        {
+            "default": "Email",
+            "fieldname": "delivery_method",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "label": "Delivery Method",
+            "options": "Email\nSMS\nBoth",
+            "reqd": 1
+        },
+        {
+            "fieldname": "section_break_1",
+            "fieldtype": "Section Break",
+            "label": "Contact Information"
+        },
+        {
+            "fieldname": "email",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "label": "Email",
+            "mandatory_depends_on": "eval: doc.delivery_method == \"Email\" || doc.delivery_method == \"Both\";"
+        },
+        {
+            "fieldname": "column_break_2",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "user",
+            "fieldtype": "Link",
+            "label": "User",
+            "options": "User"
+        },
+        {
+            "fieldname": "phone",
+            "fieldtype": "Data",
+            "label": "Phone",
+            "mandatory_depends_on": "eval: doc.delivery_method == \"SMS\" || doc.delivery_method == \"Both\";"
+        },
+        {
+            "default": "OTP-.YYYY.-.MM.-.DD.-.###.",
+            "fieldname": "naming_series",
+            "fieldtype": "Select",
+            "hidden": 1,
+            "label": "Naming Series",
+            "options": "OTP-.YYYY.-.MM.-.DD.-.###.",
+            "reqd": 1
+        },
+        {
+            "fieldname": "section_break_wcri",
+            "fieldtype": "Section Break"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2025-12-12 21:22:48.418986",
+    "modified_by": "Administrator",
+    "module": "Frappe Identity",
+    "name": "OTP",
+    "naming_rule": "By \"Naming Series\" field",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "create": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "role": "Guest",
+            "share": 1
+        }
+    ],
+    "row_format": "Dynamic",
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
+}
