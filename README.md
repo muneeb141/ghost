@@ -1,6 +1,6 @@
-# Frappe Identity
+# Ghost
 
-**Frappe Identity** is a specialized app for managing Guest User identities, OTP-based authentication, and Ghost authentication flows in Frappe.
+**Ghost** is a specialized app for managing Guest User identities, OTP-based authentication, and Ghost authentication flows in Frappe.
 
 ## Features
 
@@ -13,12 +13,12 @@
 
 1.  Get the app:
     ```bash
-    bench get-app frappe_identity [URL]
+    bench get-app ghost [URL]
     ```
 
 2.  Install on your site:
     ```bash
-    bench --site [site-name] install-app frappe_identity
+    bench --site [site-name] install-app ghost
     ```
 
 ## Usage
@@ -26,12 +26,12 @@
 ### OTP Generation
 Refer to the `OTP` DocType to configure settings.
 API endpoints:
--   `/api/method/frappe_identity.api.otp.send_otp`
--   `/api/method/frappe_identity.api.otp.validate_otp`
+-   `/api/method/ghost.api.otp.send_otp`
+-   `/api/method/ghost.api.otp.validate_otp`
 
 ### Ghost Users
 API endpoints:
--   `/api/method/frappe_identity.api.ghost.create_ghost_session`
+-   `/api/method/ghost.api.ghost.create_ghost_session`
 
 ## License
 

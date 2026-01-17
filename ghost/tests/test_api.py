@@ -1,6 +1,6 @@
 import frappe
 import unittest
-from frappe_identity.frappe_identity.api.ghost import create_ghost_session
+from ghost.ghost.api.ghost import create_ghost_session
 
 class TestFrappeIdentityAPI(unittest.TestCase):
 	def setUp(self):
@@ -39,7 +39,7 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 
 	def test_cleanup_logic(self):
 		from frappe.utils import add_days, now_datetime
-		from frappe_identity.tasks import delete_expired_ghost_users
+		from ghost.tasks import delete_expired_ghost_users
 		
 		# Setup: Enable cleanup
 		settings = frappe.get_single("Ghost Settings")
@@ -79,7 +79,7 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 
 	def test_cleanup_disabled(self):
 		from frappe.utils import add_days, now_datetime
-		from frappe_identity.tasks import delete_expired_ghost_users
+		from ghost.tasks import delete_expired_ghost_users
 
 		# Setup: DISABLE cleanup
 		settings = frappe.get_single("Ghost Settings")

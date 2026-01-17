@@ -1,6 +1,6 @@
 import frappe
 import unittest
-from frappe_identity.frappe_identity.api.otp import send_otp, validate_otp
+from ghost.ghost.api.otp import send_otp, validate_otp
 
 class TestFrappeIdentityOTP(unittest.TestCase):
 	def setUp(self):

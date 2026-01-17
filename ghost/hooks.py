@@ -1,5 +1,5 @@
-app_name = "frappe_identity"
-app_title = "Frappe Identity"
+app_name = "ghost"
+app_title = "Ghost"
 app_publisher = "Muneeb Mohammed"
 app_description = "Guest User Identity Management"
 app_email = "muneebmohammed141@gmail.com"
@@ -7,7 +7,7 @@ app_license = "mit"
 
 # Installation
 # ------------
-after_install = "frappe_identity.setup.after_install"
+after_install = "ghost.setup.after_install"
 
 
 # Apps
@@ -18,11 +18,11 @@ after_install = "frappe_identity.setup.after_install"
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
 # 	{
-# 		"name": "frappe_identity",
-# 		"logo": "/assets/frappe_identity/logo.png",
-# 		"title": "Frappe Identity",
-# 		"route": "/frappe_identity",
-# 		"has_permission": "frappe_identity.api.permission.has_app_permission"
+# 		"name": "ghost",
+# 		"logo": "/assets/ghost/logo.png",
+# 		"title": "Ghost",
+# 		"route": "/ghost",
+# 		"has_permission": "ghost.api.permission.has_app_permission"
 # 	}
 # ]
 
@@ -30,15 +30,15 @@ after_install = "frappe_identity.setup.after_install"
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/frappe_identity/css/frappe_identity.css"
-# app_include_js = "/assets/frappe_identity/js/frappe_identity.js"
+# app_include_css = "/assets/ghost/css/ghost.css"
+# app_include_js = "/assets/ghost/js/ghost.js"
 
 # include js, css files in header of web template
-# web_include_css = "/assets/frappe_identity/css/frappe_identity.css"
-# web_include_js = "/assets/frappe_identity/js/frappe_identity.js"
+# web_include_css = "/assets/ghost/css/ghost.css"
+# web_include_js = "/assets/ghost/js/ghost.js"
 
 # include custom scss in every website theme (without file extension ".scss")
-# website_theme_scss = "frappe_identity/public/scss/website"
+# website_theme_scss = "ghost/public/scss/website"
 
 # include js, css files in header of web form
 # webform_include_js = {"doctype": "public/js/doctype.js"}
@@ -56,7 +56,7 @@ after_install = "frappe_identity.setup.after_install"
 # Svg Icons
 # ------------------
 # include app icons in desk
-# app_include_icons = "frappe_identity/public/icons.svg"
+# app_include_icons = "ghost/public/icons.svg"
 
 # Home Pages
 # ----------
@@ -80,43 +80,43 @@ after_install = "frappe_identity.setup.after_install"
 
 # add methods and filters to jinja environment
 # jinja = {
-# 	"methods": "frappe_identity.utils.jinja_methods",
-# 	"filters": "frappe_identity.utils.jinja_filters"
+# 	"methods": "ghost.utils.jinja_methods",
+# 	"filters": "ghost.utils.jinja_filters"
 # }
 
 # Installation
 # ------------
 
-# before_install = "frappe_identity.install.before_install"
-# after_install = "frappe_identity.install.after_install"
+# before_install = "ghost.install.before_install"
+# after_install = "ghost.install.after_install"
 
 # Uninstallation
 # ------------
 
-# before_uninstall = "frappe_identity.uninstall.before_uninstall"
-# after_uninstall = "frappe_identity.uninstall.after_uninstall"
+# before_uninstall = "ghost.uninstall.before_uninstall"
+# after_uninstall = "ghost.uninstall.after_uninstall"
 
 # Integration Setup
 # ------------------
 # To set up dependencies/integrations with other apps
 # Name of the app being installed is passed as an argument
 
-# before_app_install = "frappe_identity.utils.before_app_install"
-# after_app_install = "frappe_identity.utils.after_app_install"
+# before_app_install = "ghost.utils.before_app_install"
+# after_app_install = "ghost.utils.after_app_install"
 
 # Integration Cleanup
 # -------------------
 # To clean up dependencies/integrations with other apps
 # Name of the app being uninstalled is passed as an argument
 
-# before_app_uninstall = "frappe_identity.utils.before_app_uninstall"
-# after_app_uninstall = "frappe_identity.utils.after_app_uninstall"
+# before_app_uninstall = "ghost.utils.before_app_uninstall"
+# after_app_uninstall = "ghost.utils.after_app_uninstall"
 
 # Desk Notifications
 # ------------------
 # See frappe.core.notifications.get_notification_config
 
-# notification_config = "frappe_identity.notifications.get_notification_config"
+# notification_config = "ghost.notifications.get_notification_config"
 
 # Permissions
 # -----------
@@ -157,11 +157,11 @@ after_install = "frappe_identity.setup.after_install"
 # ---------------
 scheduler_events = {
 	"daily": [
-		"frappe_identity.tasks.delete_expired_ghost_users"
+		"ghost.tasks.delete_expired_ghost_users"
 	],
 	"cron": {
 		"*/10 * * * *": [
-			"frappe_identity.tasks.expire_otps"
+			"ghost.tasks.expire_otps"
 		]
 	}
 }
@@ -170,20 +170,20 @@ scheduler_events = {
 # Testing
 # -------
 
-# before_tests = "frappe_identity.install.before_tests"
+# before_tests = "ghost.install.before_tests"
 
 # Overriding Methods
 # ------------------------------
 #
 # override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "frappe_identity.event.get_events"
+# 	"frappe.desk.doctype.event.event.get_events": "ghost.event.get_events"
 # }
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 # override_doctype_dashboards = {
-# 	"Task": "frappe_identity.task.get_dashboard_data"
+# 	"Task": "ghost.task.get_dashboard_data"
 # }
 
 # exempt linked doctypes from being automatically cancelled
@@ -197,13 +197,13 @@ scheduler_events = {
 
 # Request Events
 # ----------------
-# before_request = ["frappe_identity.utils.before_request"]
-# after_request = ["frappe_identity.utils.after_request"]
+# before_request = ["ghost.utils.before_request"]
+# after_request = ["ghost.utils.after_request"]
 
 # Job Events
 # ----------
-# before_job = ["frappe_identity.utils.before_job"]
-# after_job = ["frappe_identity.utils.after_job"]
+# before_job = ["ghost.utils.before_job"]
+# after_job = ["ghost.utils.after_job"]
 
 # User Data Protection
 # --------------------
@@ -233,7 +233,7 @@ scheduler_events = {
 # --------------------------------
 
 # auth_hooks = [
-# 	"frappe_identity.auth.validate"
+# 	"ghost.auth.validate"
 # ]
 
 # Automatically update python controller files with type annotations for this app.

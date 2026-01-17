@@ -120,7 +120,7 @@
     "links": [],
     "modified": "2025-12-13 14:53:27.338695",
     "modified_by": "Administrator",
-    "module": "Frappe Identity",
+    "module": "Ghost",
     "name": "OTP Settings",
     "owner": "Administrator",
     "permissions": [
