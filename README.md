@@ -32,18 +32,19 @@
 
 ## Configuration
 
-### OTP Settings
-Search for **OTP Settings** in the desk.
+### Ghost Settings
+Search for **Ghost Settings** in the desk. All configurations are now consolidated here under two tabs: **Ghost Identity** and **OTP Configuration**.
+
+-   **Enable Ghost Feature**: Master switch.
+-   **Enable Auto Cleanup**: Turn on daily deletion of old users.
+-   **Expiration Days**: How many days a Ghost user remains valid (Default: 30).
+-   **Verify OTP on Conversion**: If enabled, users must provide a valid OTP code when converting to a real user.
+
+#### OTP Configuration (Tab)
 -   **Delivery Method**: Email, SMS, or Both.
 -   **OTP Length**: Default 6 digits.
 -   **Expiry Time**: Validity duration in minutes.
 -   **Max Attempts**: Max OTPs a user can request per hour.
-
-### Ghost Settings
-Search for **Ghost Settings** in the desk.
--   **Enable Ghost Feature**: Master switch.
--   **Enable Auto Cleanup**: Turn on daily deletion of old users.
--   **Expiration Days**: How many days a Ghost user remains valid (Default: 30).
 
 ---
 
@@ -56,7 +57,8 @@ Search for **Ghost Settings** in the desk.
 ```bash
 curl -X POST https://your-site.com/api/method/ghost.api.otp.send_otp \
     -H "Content-Type: application/json" \
-    -d '{"email": "user@example.com", "purpose": "Login"}'
+    -d '{"email": "user@example.com", "purpose": "Login"}' 
+    # Purpose can be: "sign_up", "reset_password", "Login", "Conversion"
 ```
 
 ### 2. Validate OTP
@@ -91,10 +93,22 @@ curl -X POST https://your-site.com/api/method/ghost.api.ghost.create_ghost_sessi
 **Method**: `POST`
 **Access**: System/Admin (or Privileged Context)
 
+**Behavior**:
+- If `real_email` exists: **Merges** the Ghost User's data (docs/logs) into the existing Real User.
+- If `real_email` new: **Renames** the Ghost User to the Real User.
+
+**Strict Mode**:
+If "Verify OTP on Conversion" is enabled in settings, you **must** provide `otp_code`.
+
 ```bash
 curl -X POST https://your-site.com/api/method/ghost.api.ghost.convert_to_real_user \
     -H "Content-Type: application/json" \
-    -d '{"ghost_email": "ghost_xxx@guest.local", "real_email": "real@example.com", "first_name": "John"}'
+    -d '{
+        "ghost_email": "ghost_xxx@guest.local", 
+        "real_email": "real@example.com", 
+        "first_name": "John",
+        "otp_code": "123456" 
+    }'
 ```
 
 ---
