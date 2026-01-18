@@ -4,9 +4,14 @@ from ghost.api.ghost import create_ghost_session
 
 class TestFrappeIdentityAPI(unittest.TestCase):
 	def setUp(self):
+		# Ensure Ghost Role exists
+		if not frappe.db.exists("Role", "Ghost"):
+			frappe.get_doc({"doctype": "Role", "role_name": "Ghost"}).insert(ignore_permissions=True)
+
 		# Ensure settings are enabled
 		settings = frappe.get_single("Ghost Settings")
 		settings.enable_ghost_feature = 1
+		settings.ghost_role = "Ghost"
 		# Set Mandatory OTP Fields
 		settings.expiry_time_minutes = 10
 		settings.max_otp_attempts = 5
@@ -14,6 +19,7 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 		settings.otp_code_type = "Numeric"
 		settings.otp_delivery_type = "Email"
 		settings.verify_otp_on_conversion = 0
+		settings.default_user_role = None 
 		settings.save()
 
 	def test_create_ghost_session(self):
@@ -241,8 +247,8 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 			frappe.get_doc({"doctype": "Role", "role_name": target_role}).insert()
 
 		settings = frappe.get_single("Ghost Settings")
-		settings.default_converted_role = target_role
-		settings.ghost_role = "Guest"
+		settings.default_user_role = target_role
+		settings.ghost_role = "Ghost"
 		settings.save()
 
 		# 2. Create Ghost

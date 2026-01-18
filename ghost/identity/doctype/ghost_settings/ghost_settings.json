@@ -10,6 +10,8 @@
         "ghost_role",
         "ghost_email_domain",
         "expiration_days",
+        "default_user_role",
+        "client_id",
         "section_break_conversion",
         "verify_otp_on_conversion",
         "tab_otp",
@@ -61,6 +63,19 @@
             "label": "Expiration Days"
         },
         {
+            "description": "Role to assign to new users (Direct Signup) or after conversion (Ghost). If empty, no role changes are made.",
+            "fieldname": "default_user_role",
+            "fieldtype": "Link",
+            "label": "Default User Role",
+            "options": "Role"
+        },
+        {
+            "description": "OAuth Client ID to use for token generation.",
+            "fieldname": "client_id",
+            "fieldtype": "Data",
+            "label": "Client ID"
+        },
+        {
             "fieldname": "section_break_conversion",
             "fieldtype": "Section Break",
             "label": "Conversion Settings"
@@ -71,13 +86,6 @@
             "fieldname": "verify_otp_on_conversion",
             "fieldtype": "Check",
             "label": "Verify OTP on Conversion"
-        },
-        {
-            "description": "Role to assign to the user after successful conversion (e.g., Customer). If empty, no role changes are made.",
-            "fieldname": "default_converted_role",
-            "fieldtype": "Link",
-            "label": "Default Converted Role",
-            "options": "Role"
         },
         {
             "fieldname": "tab_otp",

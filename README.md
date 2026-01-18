@@ -110,19 +110,38 @@ curl -X POST https://your-site.com/api/method/ghost.api.ghost.convert_to_real_us
         "otp_code": "123456" 
     }'
 ```
+### 5. Centralized Login (Unified)
+**Endpoint**: `/api/method/ghost.api.auth.login`
+**Method**: `POST`
+**Access**: Public
 
----
+This is the primary endpoint for all client apps (Web, Mobile). It handles:
+1.  **Direct Login**: Logs in guest with OTP.
+2.  **Direct Signup**: Creates new user (with `Default User Role`) if missing.
+3.  **Ghost Conversion**: Converts Ghost session to Real User (merging data).
+4.  **Token Generation**: Returns OAuth Access Token (if `Client ID` is configured).
 
-## Testing
-
-The app includes a comprehensive test suite.
-
-Run the tests:
 ```bash
-bench --site [your-site] run-tests --module ghost.tests.test_api
+curl -X POST https://your-site.com/api/method/ghost.api.auth.login \
+    -H "Content-Type: application/json" \
+    -H "Authorization: token <ghost_api_key>:<ghost_api_secret>" \
+    -d '{
+        "email": "user@example.com", 
+        "otp": "123456",
+        "first_name": "New User"
+    }'
 ```
 
----
+**Response**:
+```json
+{
+    "status": "success",
+    "message": "Logged In",
+    "user": "user@example.com",
+    "access_token": "oauth_token_string", 
+    "refresh_token": "refresh_token_string"
+}
+```
 
 ## License
 
