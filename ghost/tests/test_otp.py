@@ -1,5 +1,6 @@
 import frappe
 import unittest
+from ghost.ghost.doctype.otp.otp import generate, verify
 from ghost.api.otp import send_otp, validate_otp
 
 class TestFrappeIdentityOTP(unittest.TestCase):
@@ -17,7 +18,7 @@ class TestFrappeIdentityOTP(unittest.TestCase):
 
 
 		# 1. Send OTP
-		response = send_otp(email=email, purpose="sign_up")
+		response = send_otp(email=email, purpose="Sign Up")
 		if response.get("http_status_code") != 200:
 			print(f"\n[DEBUG] Send OTP Failed: {response.get('message')} - {response.get('error')}")
 		self.assertEqual(response.get("http_status_code"), 200, f"Send OTP Failed: {response.get('message')}")
@@ -33,11 +34,11 @@ class TestFrappeIdentityOTP(unittest.TestCase):
 		# 2. Verify Valid OTP
 		# Note: validate_otp calls verify_otp which might raise exceptions or return None.
 		# The API wrapper returns a dict.
-		response = validate_otp(otp_code=code, email=email, purpose="sign_up")
+		response = validate_otp(otp_code=code, email=email, purpose="Sign Up")
 		self.assertEqual(response.get("http_status_code"), 200)
 		
 		# 3. Verify Invalid OTP
-		response_bad = validate_otp(otp_code="000000", email=email, purpose="sign_up")
+		response_bad = validate_otp(otp_code="000000", email=email, purpose="Sign Up")
 		self.assertNotEqual(response_bad.get("http_status_code"), 200)
 
 		# 4. Cleanup

@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from frappe.utils import random_string, now_datetime, add_to_date
-from ghost.identity.doctype.otp.otp import verify as ghost_verify_otp
+from ghost.ghost.doctype.otp.otp import verify as ghost_verify_otp
 
 @frappe.whitelist(allow_guest=True)
 def login(otp, email=None, mobile_no=None, first_name=None, last_name=None, client_id=None):

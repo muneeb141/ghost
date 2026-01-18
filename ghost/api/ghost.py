@@ -74,7 +74,7 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 	- If Real User exists: Merges Ghost data into Real User.
 	- If Real User does not exist: Renames Ghost User to Real User.
 	"""
-	from ghost.identity.doctype.otp.otp import verify as verify_otp
+	from ghost.ghost.doctype.otp.otp import verify as verify_otp
 
 	settings = frappe.get_single("Ghost Settings")
 

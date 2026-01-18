@@ -1,8 +1,8 @@
 import frappe
 from frappe import _
 
-from ghost.identity.doctype.otp.otp import generate as generate_otp
-from ghost.identity.doctype.otp.otp import verify as verify_otp
+from ghost.ghost.doctype.otp.otp import generate as generate_otp
+from ghost.ghost.doctype.otp.otp import verify as verify_otp
 
 
 # API: POST /api/method/ghost.api.send_otp

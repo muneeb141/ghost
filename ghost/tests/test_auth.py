@@ -2,6 +2,7 @@ import frappe
 import unittest
 from ghost.api.auth import login
 from ghost.api.ghost import create_ghost_session
+from ghost.ghost.doctype.otp.otp import verify as ghost_verify_otp
 from ghost.api.otp import send_otp
 
 class TestGhostAuth(unittest.TestCase):
@@ -16,6 +17,7 @@ class TestGhostAuth(unittest.TestCase):
 		settings.otp_code_type = "Numeric"
 		settings.otp_delivery_type = "Email"
 		settings.verify_otp_on_conversion = 0
+		settings.default_user_role = "Customer"
 		settings.save()
 		
 		# Ensure Ghost Role exists
