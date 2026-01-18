@@ -7,7 +7,7 @@ app_license = "mit"
 
 # Installation
 # ------------
-after_install = "ghost.setup.after_install"
+after_install = "ghost.install.after_install"
 
 
 # Apps

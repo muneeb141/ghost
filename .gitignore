@@ -1,17 +1,15 @@
 *.pyc
-*.pyo
-__pycache__/
-env/
+__pycache__
+*.egg-info
 .DS_Store
 *.swp
-*.egg-info/
+site_config.json
+*.tar.gz
+node_modules/
 dist/
 build/
-node_modules/
-.vscode/
 
-# Test Scripts and Local Configs
-integration_test.py
-verify_imports.py
-site_config.json
-*.log
+# Local Dev
+bruno/
+*.bru
+ghost/tests/test_full_suite.py
