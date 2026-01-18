@@ -68,12 +68,14 @@ def create_ghost_session(email=None):
 	}
 
 @frappe.whitelist()
-def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None):
+def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None, otp_code=None):
 	"""
 	Converts a Ghost User to a Real User.
 	- If Real User exists: Merges Ghost data into Real User.
 	- If Real User does not exist: Renames Ghost User to Real User.
 	"""
+	from ghost.identity.doctype.otp.otp import verify as verify_otp
+
 	settings = frappe.get_single("Ghost Settings")
 
 	if not frappe.db.exists("User", ghost_email):
@@ -81,22 +83,12 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 
 	# Optional: Verify OTP before conversion if enabled
 	if settings.verify_otp_on_conversion:
-		# We expect the frontend to have validated the OTP via `validate_otp` first,
-		# OR we can enforce it here by requiring an OTP code in arguments.
-		# For checking purposes, let's assume the flow is:
-		# 1. Client calls send_otp(real_email, purpose="Conversion")
-		# 2. Client calls validate_otp(real_email, code, purpose="Conversion") => Returns success
-		# 3. Client calls convert_to_real_user(...)
-		# To strictly enforce it HERE, we would need to check if the Verification was recently successful.
-		# For simplicity in this v1.1, we'll assume the client handles the verification step via the validate_otp API.
-		# Or better: Require `otp_code` as an argument?
-		# Let's check if there is a 'verified' flag in session or just rely on the API flow availability.
-		# Given the user request "during converting the otp will be auto shared", maybe they mean we SEND it?
-		# "when the ghost is enabled there will a new check box comes it to send the otp so during the converting the otp will be auto shared"
-		# This sounds like: User enters email -> System Sends OTP -> User enters OTP -> Conversion happens.
-		# Since this is a single API call `convert_to_real_user`, it implies the "Conversion" action is *final*.
-		# So validation must happen *before* calling this.
-		pass
+		if not otp_code:
+			frappe.throw(_("OTP Code is required for conversion."))
+		
+		# Verify the OTP for the REAL email (since that is what we are verifying ownership of)
+		# This will raise exception if invalid or expired.
+		verify_otp(otp_code, email=real_email, purpose="Conversion")
 
 	# Check if target exists
 	target_exists = frappe.db.exists("User", real_email)

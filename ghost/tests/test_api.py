@@ -13,6 +13,7 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 		settings.otp_length = 6
 		settings.otp_code_type = "Numeric"
 		settings.otp_delivery_type = "Email"
+		settings.verify_otp_on_conversion = 0
 		settings.save()
 
 	def test_create_ghost_session(self):
@@ -181,4 +182,50 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 		todo.reload()
 		self.assertEqual(todo.owner, real_email, "ToDo owner should be updated to Real User")
 		
+
 		print(f"\n[Success] Merged {ghost_email} -> {real_email}")
+
+	def test_convert_with_otp_enforced(self):
+		"""
+		Test Strict OTP Enforcement for conversion.
+		"""
+		from ghost.api.ghost import create_ghost_session, convert_to_real_user
+		from ghost.api.otp import send_otp
+
+		# 1. Enable Strict Mode
+		settings = frappe.get_single("Ghost Settings")
+		settings.verify_otp_on_conversion = 1
+		settings.otp_delivery_type = "Email" 
+		settings.save()
+
+		# 2. Create Ghost
+		ghost_data = create_ghost_session()
+		ghost_email = ghost_data["user"]
+		
+		real_email = "secure_user@example.com"
+		if frappe.db.exists("User", real_email):
+			frappe.delete_doc("User", real_email, force=True)
+
+		# 3. Attempt Convert WITHOUT OTP -> Should Fail
+		try:
+			convert_to_real_user(ghost_email, real_email)
+			self.fail("Should have raised exception for missing OTP")
+		except Exception as e:
+			self.assertIn("OTP Code is required", str(e))
+
+
+		# 4. Generate OTP
+		resp = send_otp(email=real_email, purpose="Conversion")
+		self.assertEqual(resp.get("http_status_code"), 200, f"Send OTP Failed: {resp}")
+		
+		otp_name = frappe.db.get_value("OTP", {"email": real_email, "purpose": "Conversion", "status": "Valid"}, "name")
+		self.assertTrue(otp_name, "OTP should be generated")
+		otp_code = frappe.db.get_value("OTP", otp_name, "otp_code")
+
+		
+		# 5. Attempt Convert WITH OTP -> Should Success
+		convert_to_real_user(ghost_email, real_email, otp_code=otp_code)
+		
+		self.assertTrue(frappe.db.exists("User", real_email), "Real user should serve")
+		print(f"\n[Success] Verified Strict OTP flow for {real_email}")
+
