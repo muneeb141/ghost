@@ -19,7 +19,7 @@ def send_otp(otp_code, delivery_method, email=None, phone=None, **kwargs):
 	Returns:
 	    dict: Result from sending or None if no sender configured
 	"""
-	settings = frappe.get_single("OTP Settings")
+	settings = frappe.get_single("Ghost Settings")
 
 	if delivery_method == "Email":
 		return send_otp_email(otp_code, email, settings, **kwargs)
@@ -64,7 +64,7 @@ def send_otp_sms(otp_code, phone, settings, **kwargs):
 		sender_func = frappe.get_attr(settings.sms_sender)
 		result = sender_func(otp_code=otp_code, phone=phone, **kwargs)
 
-		return {"status": "sent", "method": "sms", "result": result}
+		return {"status": "sent", "method": "sms", "result": str(result)}
 	except AttributeError:
 		frappe.log_error(
 			message=f"Failed to load SMS sender function '{settings.sms_sender}'", title="OTP Sender"

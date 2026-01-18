@@ -110,6 +110,15 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 				message=f"OTP generated but failed to send: {frappe.get_traceback()}", title="OTP Generation"
 			)
 
+	print(f"\n[DEBUG] Returning from generate: otp_code={otp_code}, name={otp_doc.name}, send_results={send_results}") 
+	import json
+	try:
+		json.dumps(send_results)
+	except Exception as e:
+		print(f"\n[DEBUG] Circular reference in send_results: {e}")
+		# Force sanitize
+		send_results = str(send_results)
+
 	return {
 		"otp_code": otp_code,
 		"name": otp_doc.name,

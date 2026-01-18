@@ -103,26 +103,26 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		frappe.set_user(original_user)
 
 	# 2. Update Role & Profile (of the resulting user)
+	# Reload to be safe after rename
 	user = frappe.get_doc("User", real_email)
 	
-	# Remove Ghost Role
-	ghost_role = settings.ghost_role or "Guest"
-	existing_roles = [r.role for r in user.roles]
+	# Transition Logic
+	ghost_role = settings.ghost_role or "Ghost"
+	target_role = settings.default_user_role or "Website User"
+
+	# Filter out Ghost Role
+	new_roles = [r for r in user.roles if r.role != ghost_role]
 	
-	# If converted role is configured, use it. Otherwise default to Website User logic.
-	target_role = settings.default_user_role
+	# Add Target Role if not present
+	existing_role_names = [r.role for r in new_roles]
+	if target_role and target_role not in existing_role_names:
+		new_roles.append({"doctype": "Has Role", "role": target_role})
 	
-	# Transition: Remove Ghost -> Add Target
-	if ghost_role in existing_roles:
-		user.remove_roles(ghost_role)
-		
-	if target_role:
-		if target_role not in existing_roles:
-			user.add_roles(target_role)
-	else:
-		# Fallback: maintain basic access
-		if "Website User" not in existing_roles:
-			user.add_roles("Website User")
+	# Fallback safety (ensure at least one role)
+	if not new_roles:
+		new_roles.append({"doctype": "Has Role", "role": "Website User"})
+
+	user.set("roles", new_roles)
 
 	# Update Details
 	if first_name:
