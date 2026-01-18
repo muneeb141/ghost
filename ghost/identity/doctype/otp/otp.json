@@ -57,7 +57,7 @@
             "in_list_view": 1,
             "in_standard_filter": 1,
             "label": "Purpose",
-            "options": "sign_up\nreset_password\nLogin\nConversion",
+            "options": "Sign Up\nReset Password\nLogin\nConversion",
             "reqd": 1
         },
         {
