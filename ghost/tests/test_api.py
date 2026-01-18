@@ -7,6 +7,12 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 		# Ensure settings are enabled
 		settings = frappe.get_single("Ghost Settings")
 		settings.enable_ghost_feature = 1
+		# Set Mandatory OTP Fields
+		settings.expiry_time_minutes = 10
+		settings.max_otp_attempts = 5
+		settings.otp_length = 6
+		settings.otp_code_type = "Numeric"
+		settings.otp_delivery_type = "Email"
 		settings.save()
 
 	def test_create_ghost_session(self):
@@ -135,3 +141,44 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 		self.assertIn("Website User", roles, "Should have default role")
 		
 		print(f"\n[Success] Converted {ghost_email} -> {real_email}")
+
+	def test_convert_merge_existing(self):
+		"""
+		Test merging a Ghost User into an EXISTING Real User.
+		"""
+		from ghost.api.ghost import create_ghost_session, convert_to_real_user
+
+		# 1. Create Ghost
+		ghost_data = create_ghost_session()
+		ghost_email = ghost_data["user"]
+		
+		# 2. Create Real User (Target)
+		real_email = "existing_real@example.com"
+		if not frappe.db.exists("User", real_email):
+			u = frappe.new_doc("User")
+			u.email = real_email
+			u.first_name = "Existing"
+			u.save(ignore_permissions=True)
+		
+		# 3. Create a linked document to Ghost (e.g. ToDo) to verify ownership transfer
+		todo = frappe.get_doc({
+			"doctype": "ToDo",
+			"description": "Ghost Task"
+		}).insert(ignore_permissions=True)
+		# Force owner to be ghost (since we are running as Admin)
+		todo.owner = ghost_email
+		todo.db_update()
+		
+		# 4. Convert (Merge)
+		result = convert_to_real_user(ghost_email, real_email)
+		
+		# 5. Verify
+		self.assertTrue(result.get("merged"), "Should return merged=True")
+		self.assertFalse(frappe.db.exists("User", ghost_email), "Ghost user should be deleted")
+		self.assertTrue(frappe.db.exists("User", real_email), "Real user should remain")
+		
+		# Check ToDo ownership
+		todo.reload()
+		self.assertEqual(todo.owner, real_email, "ToDo owner should be updated to Real User")
+		
+		print(f"\n[Success] Merged {ghost_email} -> {real_email}")

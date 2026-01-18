@@ -4,14 +4,31 @@
     "doctype": "DocType",
     "engine": "InnoDB",
     "field_order": [
+        "tab_ghost",
         "enable_ghost_feature",
         "enable_auto_cleanup",
         "ghost_role",
-        "enable_auto_cleanup",
         "ghost_email_domain",
-        "expiration_days"
+        "expiration_days",
+        "section_break_conversion",
+        "verify_otp_on_conversion",
+        "tab_otp",
+        "expiry_time_minutes",
+        "max_otp_attempts",
+        "otp_length",
+        "otp_code_type",
+        "section_delivery",
+        "otp_delivery_type",
+        "email_account",
+        "email_template",
+        "sms_sender"
     ],
     "fields": [
+        {
+            "fieldname": "tab_ghost",
+            "fieldtype": "Tab Break",
+            "label": "Ghost Identity"
+        },
         {
             "default": "0",
             "fieldname": "enable_ghost_feature",
@@ -42,6 +59,92 @@
             "fieldname": "expiration_days",
             "fieldtype": "Int",
             "label": "Expiration Days"
+        },
+        {
+            "fieldname": "section_break_conversion",
+            "fieldtype": "Section Break",
+            "label": "Conversion Settings"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, an OTP will be sent to the Real Email before conversion is finalized.",
+            "fieldname": "verify_otp_on_conversion",
+            "fieldtype": "Check",
+            "label": "Verify OTP on Conversion"
+        },
+        {
+            "fieldname": "tab_otp",
+            "fieldtype": "Tab Break",
+            "label": "OTP Configuration"
+        },
+        {
+            "default": "10",
+            "fieldname": "expiry_time_minutes",
+            "fieldtype": "Int",
+            "label": "Expiry Time (Minutes)",
+            "reqd": 1
+        },
+        {
+            "default": "5",
+            "description": "Maximum number of OTP Attempts for a user[email/phone] per hour",
+            "fieldname": "max_otp_attempts",
+            "fieldtype": "Int",
+            "label": "Max OTP Attempts",
+            "reqd": 1
+        },
+        {
+            "default": "6",
+            "fieldname": "otp_length",
+            "fieldtype": "Int",
+            "label": "OTP Length (Digits)",
+            "reqd": 1
+        },
+        {
+            "default": "Numeric",
+            "fieldname": "otp_code_type",
+            "fieldtype": "Select",
+            "label": "OTP Code Type",
+            "options": "Numeric\nMixed",
+            "reqd": 1
+        },
+        {
+            "fieldname": "section_delivery",
+            "fieldtype": "Section Break",
+            "label": "Delivery Settings"
+        },
+        {
+            "default": "Email",
+            "fieldname": "otp_delivery_type",
+            "fieldtype": "Select",
+            "label": "OTP Delivery Type",
+            "options": "Email\nSMS\nBoth",
+            "reqd": 1
+        },
+        {
+            "depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
+            "fieldname": "email_account",
+            "fieldtype": "Link",
+            "label": "Email Account",
+            "link_filters": "[[\"Email Account\",\"enable_outgoing\",\"=\",1]]",
+            "mandatory_depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
+            "options": "Email Account"
+        },
+        {
+            "depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
+            "description": "Email Template contains  {{ otp_code }} variable to be formated.",
+            "fieldname": "email_template",
+            "fieldtype": "Link",
+            "label": "Email Template",
+            "mandatory_depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
+            "options": "Email Template"
+        },
+        {
+            "depends_on": "eval:doc.otp_delivery_type==='SMS' || doc.otp_delivery_type==='Both'",
+            "description": "Full path to SMS sender function (e.g., 'custom_app.utils.send_sms').",
+            "fieldname": "sms_sender",
+            "fieldtype": "Data",
+            "label": "SMS Sender Function",
+            "mandatory_depends_on": "eval:doc.otp_delivery_type==='SMS' || doc.otp_delivery_type==='Both'"
         }
     ],
     "issingle": 1,

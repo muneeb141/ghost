@@ -1,11 +1,15 @@
 import frappe
 import unittest
-from ghost.ghost.api.otp import send_otp, validate_otp
+from ghost.api.otp import send_otp, validate_otp
 
 class TestFrappeIdentityOTP(unittest.TestCase):
 	def setUp(self):
-		frappe.db.set_value("OTP Settings", "OTP Settings", "max_otp_attempts", 5)
-		frappe.db.set_value("OTP Settings", "OTP Settings", "otp_delivery_type", "Email")
+		settings = frappe.get_single("Ghost Settings")
+		settings.max_otp_attempts = 5
+		settings.otp_delivery_type = "Email"
+		settings.otp_code_type = "Numeric"
+		settings.otp_length = 6
+		settings.save()
 
 	def test_otp_flow(self):
 		email = "test_otp@guest.local"

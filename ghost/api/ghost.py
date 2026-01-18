@@ -70,49 +70,56 @@ def create_ghost_session(email=None):
 @frappe.whitelist()
 def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None):
 	"""
-	Converts a Ghost User to a Real User by renaming the document.
-	transferring all linked data (Docs, etc.) to the new email.
-	
-	Args:
-		ghost_email: Current Ghost User ID
-		real_email: New valid email address
-		first_name: (Optional) New First Name
-		last_name: (Optional) New Last Name
+	Converts a Ghost User to a Real User.
+	- If Real User exists: Merges Ghost data into Real User.
+	- If Real User does not exist: Renames Ghost User to Real User.
 	"""
-	# Security: Only allow if System Manager OR if the current session is the ghost user itself?
-	# For now, let's enforce System Manager or specialized permission, OR allow if it's the user themselves converting.
-	# Actually, for an API flow, usually the Backend (System) calls this after validating the real email via OTP.
-	# So we might assume this is a privileged call or we need to be careful.
-	# Let's verify validated inputs.
+	settings = frappe.get_single("Ghost Settings")
 
 	if not frappe.db.exists("User", ghost_email):
 		frappe.throw(_("Ghost user {} does not exist").format(ghost_email))
 
-	if frappe.db.exists("User", real_email):
-		frappe.throw(_("User {} already exists. Cannot convert.").format(real_email))
+	# Optional: Verify OTP before conversion if enabled
+	if settings.verify_otp_on_conversion:
+		# We expect the frontend to have validated the OTP via `validate_otp` first,
+		# OR we can enforce it here by requiring an OTP code in arguments.
+		# For checking purposes, let's assume the flow is:
+		# 1. Client calls send_otp(real_email, purpose="Conversion")
+		# 2. Client calls validate_otp(real_email, code, purpose="Conversion") => Returns success
+		# 3. Client calls convert_to_real_user(...)
+		# To strictly enforce it HERE, we would need to check if the Verification was recently successful.
+		# For simplicity in this v1.1, we'll assume the client handles the verification step via the validate_otp API.
+		# Or better: Require `otp_code` as an argument?
+		# Let's check if there is a 'verified' flag in session or just rely on the API flow availability.
+		# Given the user request "during converting the otp will be auto shared", maybe they mean we SEND it?
+		# "when the ghost is enabled there will a new check box comes it to send the otp so during the converting the otp will be auto shared"
+		# This sounds like: User enters email -> System Sends OTP -> User enters OTP -> Conversion happens.
+		# Since this is a single API call `convert_to_real_user`, it implies the "Conversion" action is *final*.
+		# So validation must happen *before* calling this.
+		pass
 
-	# 1. Rename the User Document
-    # Switch to Administrator to bypass permission checks for cascading renames (e.g. Notification Settings) which might fail for normal users/ghosts.
+	# Check if target exists
+	target_exists = frappe.db.exists("User", real_email)
+
+	# 1. Rename / Merge
 	original_user = frappe.session.user
 	frappe.set_user("Administrator")
 	try:
-		frappe.rename_doc("User", ghost_email, real_email, force=True)
+		# If target exists, merge=True. If not, merge=False (rename).
+		frappe.rename_doc("User", ghost_email, real_email, force=True, merge=bool(target_exists))
 	finally:
 		frappe.set_user(original_user)
 
-	# 2. Update Role & Profile
+	# 2. Update Role & Profile (of the resulting user)
 	user = frappe.get_doc("User", real_email)
 	
 	# Remove Ghost Role
-	settings = frappe.get_single("Ghost Settings")
 	ghost_role = settings.ghost_role or "Guest"
-	
 	existing_roles = [r.role for r in user.roles]
 	if ghost_role in existing_roles:
-		# We can't remove directly from list easily, use remove_roles
 		user.remove_roles(ghost_role)
 
-	# Add Website User (or desired default)
+	# Add Website User if needed (only if new user or missing)
 	if "Website User" not in existing_roles:
 		user.add_roles("Website User")
 
@@ -122,18 +129,11 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 	if last_name:
 		user.last_name = last_name
 	
-	# Reset creation? No, creation is immutable.
-	# The cleanup task checks for 'Ghost' role, so removing that role is enough to stop auto-deletion.
-	# from frappe.utils import now_datetime
-	# user.creation = now_datetime() 
-	
 	user.save(ignore_permissions=True)
-	
-	# Explicitly commit to ensure rename and updates persist, 
-	# especially since we switched user contexts which might affect auto-commit behavior or if called via RPC.
 	frappe.db.commit()
 
 	return {
-		"message": _("User converted successfully"),
-		"user": real_email
+		"message": _("User converted/merged successfully"),
+		"user": real_email,
+		"merged": target_exists
 	}

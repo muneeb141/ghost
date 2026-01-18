@@ -22,7 +22,7 @@ class OTP(Document):
 		self.expire_all_otps()
 
 	def set_expiry(self):
-		settings = frappe.get_single("OTP Settings")
+		settings = frappe.get_single("Ghost Settings")
 		expiry_minutes = settings.expiry_time_minutes or 10
 		self.expiry = add_to_date(now_datetime(), minutes=expiry_minutes)
 
@@ -48,7 +48,7 @@ class OTP(Document):
 
 
 def generate(email=None, phone=None, purpose=None, user=None, send=True):
-	settings = frappe.get_single("OTP Settings")
+	settings = frappe.get_single("Ghost Settings")
 	delivery_method = settings.otp_delivery_type or "Email"
 
 	if delivery_method in ["Email", "Both"] and not email:
