@@ -1,6 +1,6 @@
 {
     "actions": [],
-    "creation": "2024-05-22 10:00:00.000000",
+    "creation": "2026-01-27 10:00:00.000000",
     "doctype": "DocType",
     "engine": "InnoDB",
     "field_order": [
@@ -164,7 +164,7 @@
     ],
     "issingle": 1,
     "links": [],
-    "modified": "2024-05-22 10:00:00.000000",
+    "modified": "2026-01-19 10:00:00.000000",
     "modified_by": "Administrator",
     "module": "Ghost",
     "name": "Ghost Settings",

@@ -29,19 +29,19 @@ def send_otp(email=None, phone=None, purpose=None, user=None):
 		)
 		frappe.local.response["http_status_code"] = 200
 		frappe.local.response["message"] = _("OTP generated successfully")
-		return frappe.local.response
+		return
 
 	except frappe.ValidationError as e:
 		frappe.local.response["http_status_code"] = 400
 		frappe.local.response["message"] = str(e)
-		return frappe.local.response
+		return
 
 	except Exception as e:
 		frappe.log_error(message=f"OTP Generation Error: {frappe.get_traceback()}", title="OTP Generation")
 		frappe.local.response["http_status_code"] = 500
 		frappe.local.response["message"] = _("Failed to generate OTP")
 		frappe.local.response["error"] = str(e)
-		return frappe.local.response
+		return
 
 
 # API: POST /api/method/ghost.api.validate_otp
@@ -63,22 +63,23 @@ def validate_otp(otp_code, email=None, phone=None, purpose=None):
 		if not otp_code:
 			frappe.local.response["http_status_code"] = 400
 			frappe.local.response["message"] = _("OTP code is required")
-			return frappe.local.response
+			return
+
 		if not email and not phone:
 			frappe.local.response["http_status_code"] = 400
 			frappe.local.response["message"] = _("Either email or phone must be provided")
-			return frappe.local.response
+			return
 
 		verify_otp(otp_code=otp_code, email=email, phone=phone, purpose=purpose)
 
 		frappe.local.response["http_status_code"] = 200
 		frappe.local.response["message"] = _("OTP verified successfully")
-		return frappe.local.response
+		return
 
 	except frappe.ValidationError as e:
 		frappe.local.response["http_status_code"] = 400
 		frappe.local.response["message"] = str(e)
-		return frappe.local.response
+		return
 
 	except Exception as e:
 		frappe.log_error(
@@ -87,4 +88,4 @@ def validate_otp(otp_code, email=None, phone=None, purpose=None):
 		frappe.local.response["http_status_code"] = 500
 		frappe.local.response["message"] = _("OTP verification failed")
 		frappe.local.response["error"] = str(e)
-		return frappe.local.response
+		return
