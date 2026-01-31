@@ -1,0 +1,22 @@
+meta {
+  name: Send OTP (Conversion)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.otp.send_otp
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "new.user@example.com",
+    "purpose": "Conversion"
+  }
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8000
+}

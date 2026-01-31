@@ -1,0 +1,28 @@
+meta {
+  name: Convert (Frictionless)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.ghost.convert_to_real_user
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+body:json {
+  {
+    "ghost_email": "{{ghost_email}}",
+    "real_email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe"
+  }
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8000
+}

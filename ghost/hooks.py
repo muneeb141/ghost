@@ -9,6 +9,10 @@ app_license = "mit"
 # ------------
 after_install = "ghost.install.after_install"
 
+# Migrations
+# ------------
+after_migrate = "ghost.patches.v1_0.set_ghost_settings_defaults.execute"
+
 
 # Apps
 # ------------------
