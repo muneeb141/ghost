@@ -47,23 +47,23 @@ def create_ghost_session(email=None):
 	# Assign Role
 	if ghost_role not in [r.role for r in user.roles]:
 		user.add_roles(ghost_role)
+		user.save(ignore_permissions=True)
 
-	# Generate Keys
-	api_key = random_string(16)
-	api_secret = random_string(16)
+	# Generate OAuth Bearer Tokens instead of API keys
+	from ghost.api.auth import generate_oauth_tokens
 	
-	user.api_key = api_key
-	user.api_secret = api_secret
-	user.save(ignore_permissions=True)
-
-	# Login (generate session)
-	# For API usage, keys are enough. But for frontend session, we might want cookies.
-	# Here we return keys for API usage as requested "api calling from frontend".
+	try:
+		tokens = generate_oauth_tokens(user.name)
+	except Exception as e:
+		frappe.log_error(f"Failed to generate tokens for ghost user {user.name}: {str(e)}")
+		frappe.throw(_("Failed to generate authentication tokens. Please check Ghost Settings."))
 	
 	return {
 		"user": email,
-		"api_key": api_key,
-		"api_secret": api_secret,
+		"access_token": tokens["access_token"],
+		"refresh_token": tokens["refresh_token"],
+		"expires_in": tokens["expires_in"],
+		"token_type": tokens["token_type"],
 		"message": "Ghost session created"
 	}
 
@@ -133,8 +133,40 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 	user.save(ignore_permissions=True)
 	frappe.db.commit()
 
-	return {
+	# 3. Token Management: Invalidate ghost tokens and generate new tokens for real user
+	from ghost.api.auth import generate_oauth_tokens
+	
+	# Invalidate old ghost user tokens if configured
+	if settings.invalidate_ghost_tokens_on_conversion:
+		frappe.db.sql("""
+			UPDATE `tabOAuth Bearer Token`
+			SET status = 'Revoked'
+			WHERE user = %s AND status = 'Active'
+		""", (ghost_email,))
+		frappe.db.commit()
+		frappe.logger().info(f"Invalidated ghost tokens for {ghost_email}")
+	
+	# Generate new tokens for the converted/merged real user
+	try:
+		new_tokens = generate_oauth_tokens(real_email)
+	except Exception as e:
+		frappe.log_error(f"Failed to generate tokens for converted user {real_email}: {str(e)}")
+		# Don't fail the conversion if token generation fails, just log it
+		new_tokens = None
+
+	response = {
 		"message": _("User converted/merged successfully"),
 		"user": real_email,
 		"merged": target_exists
 	}
+	
+	# Add new tokens to response if generated successfully
+	if new_tokens:
+		response.update({
+			"access_token": new_tokens["access_token"],
+			"refresh_token": new_tokens["refresh_token"],
+			"expires_in": new_tokens["expires_in"],
+			"token_type": new_tokens["token_type"]
+		})
+	
+	return response
