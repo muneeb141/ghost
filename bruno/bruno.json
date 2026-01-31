@@ -1,0 +1,11 @@
+{
+    "version": "1",
+    "name": "Ghost API",
+    "type": "collection",
+    "description": "API test collection for Ghost - Anonymous user identity management with OAuth2 authentication",
+    "ignore": [
+        ".git",
+        "node_modules",
+        ".env"
+    ]
+}

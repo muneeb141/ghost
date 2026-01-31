@@ -10,6 +10,4 @@ dist/
 build/
 
 # Local Dev
-bruno/
-*.bru
 ghost/tests/test_full_suite.py

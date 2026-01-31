@@ -1,0 +1,29 @@
+meta {
+  name: Send OTP (Direct)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.otp.send_otp
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "user@example.com",
+    "purpose": "Conversion"
+  }
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8000
+}
+
+docs {
+  ### Send OTP for Direct Login/Signup
+  This call initiates the authentication process for a non-logged-in guest.
+  
+  **Note:** No API keys are required for this call.
+}

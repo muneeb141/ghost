@@ -1,0 +1,31 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.auth.refresh_bearer_token
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refresh_token": "{{refresh_token}}"
+  }
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8000
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const data = res.getBody();
+    // Update with new tokens
+    bru.setVar("access_token", data.message.access_token);
+    bru.setVar("refresh_token", data.message.refresh_token);
+    bru.setVar("expires_in", data.message.expires_in);
+  }
+}

@@ -1,0 +1,39 @@
+meta {
+  name: Convert (Secure - With OTP)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.ghost.convert_to_real_user
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+body:json {
+  {
+    "ghost_email": "{{ghost_email}}",
+    "real_email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "otp_code": "123456"
+  }
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8000
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const data = res.getBody();
+    // Update with new tokens for converted user
+    bru.setVar("access_token", data.message.access_token);
+    bru.setVar("refresh_token", data.message.refresh_token);
+    bru.setVar("real_email", data.message.user);
+  }
+}

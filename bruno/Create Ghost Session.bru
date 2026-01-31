@@ -1,0 +1,27 @@
+meta {
+  name: Create Ghost Session
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.ghost.create_ghost_session
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8000
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const data = res.getBody();
+    // Extract OAuth Bearer tokens from response
+    bru.setVar("ghost_email", data.message.user);
+    bru.setVar("access_token", data.message.access_token);
+    bru.setVar("refresh_token", data.message.refresh_token);
+    bru.setVar("expires_in", data.message.expires_in);
+    bru.setVar("token_type", data.message.token_type);
+  }
+}
