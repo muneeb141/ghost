@@ -15,7 +15,7 @@ bench --site your-site install-app ghost
 
 ---
 
-## ⚡ Quick Start (3 minutes)
+## ⚡ Quick Start
 
 1. **Create OAuth Client** → Setup > Integrations > OAuth Client
 2. **Enable Ghost** → Setup > Ghost Settings → Paste Client ID
