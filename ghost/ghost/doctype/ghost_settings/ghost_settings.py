@@ -18,6 +18,10 @@ class GhostSettings(Document):
 		
 		if self.refresh_token_expiry_days and self.refresh_token_expiry_days < 1:
 			frappe.throw(_("Refresh Token Expiry should be at least 1 day."))
+
+		# Sandbox mode validation
+		if getattr(self, "sandbox_mode", 0) and not getattr(self, "sandbox_otp", None):
+			frappe.throw(_("Sandbox OTP Code is required when Sandbox Mode is enabled."))
 	
 	def set_default_values(self):
 		"""Set default values for OAuth settings if not already set"""
@@ -50,3 +54,7 @@ class GhostSettings(Document):
 		
 		if not self.otp_delivery_type:
 			self.otp_delivery_type = "Email"
+
+		# Sandbox defaults
+		if not getattr(self, "sandbox_otp", None):
+			self.sandbox_otp = "000141"

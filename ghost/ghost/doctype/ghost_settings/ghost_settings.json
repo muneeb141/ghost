@@ -1,244 +1,262 @@
 {
- "actions": [],
- "creation": "2026-01-19 10:00:00",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "tab_ghost",
-  "enable_ghost_feature",
-  "enable_auto_cleanup",
-  "ghost_role",
-  "ghost_email_domain",
-  "expiration_days",
-  "default_user_role",
-  "client_id",
-  "section_break_conversion",
-  "verify_otp_on_conversion",
-  "tab_otp",
-  "expiry_time_minutes",
-  "allow_anonymous_otp",
-  "max_otp_attempts",
-  "otp_length",
-  "otp_code_type",
-  "section_delivery",
-  "otp_delivery_type",
-  "email_account",
-  "email_template",
-  "sms_sender",
-  "oauth_token_settings_tab",
-  "section_break_oauth",
-  "access_token_expiry_seconds",
-  "refresh_token_expiry_days",
-  "ghost_token_scope",
-  "invalidate_ghost_tokens_on_conversion"
- ],
- "fields": [
-  {
-   "fieldname": "tab_ghost",
-   "fieldtype": "Tab Break",
-   "label": "Ghost Identity"
-  },
-  {
-   "default": "0",
-   "fieldname": "enable_ghost_feature",
-   "fieldtype": "Check",
-   "label": "Enable Ghost Feature"
-  },
-  {
-   "default": "1",
-   "fieldname": "enable_auto_cleanup",
-   "fieldtype": "Check",
-   "label": "Enable Auto Cleanup"
-  },
-  {
-   "default": "Guest",
-   "fieldname": "ghost_role",
-   "fieldtype": "Link",
-   "label": "Ghost Role",
-   "options": "Role"
-  },
-  {
-   "default": "guest.local",
-   "fieldname": "ghost_email_domain",
-   "fieldtype": "Data",
-   "label": "Ghost Email Domain"
-  },
-  {
-   "default": "30",
-   "fieldname": "expiration_days",
-   "fieldtype": "Int",
-   "label": "Expiration Days"
-  },
-  {
-   "description": "Role to assign to new users (Direct Signup) or after conversion (Ghost). If empty, no role changes are made.",
-   "fieldname": "default_user_role",
-   "fieldtype": "Link",
-   "label": "Default User Role",
-   "options": "Role"
-  },
-  {
-   "description": "OAuth Client ID to use for token generation. Required when Ghost Feature is enabled.",
-   "fieldname": "client_id",
-   "fieldtype": "Data",
-   "label": "Client ID",
-   "mandatory_depends_on": "eval:doc.enable_ghost_feature==1"
-  },
-  {
-   "fieldname": "section_break_oauth",
-   "fieldtype": "Section Break"
-  },
-  {
-   "default": "3600",
-   "description": "How long access tokens remain valid in seconds (default: 3600 = 1 hour).",
-   "fieldname": "access_token_expiry_seconds",
-   "fieldtype": "Int",
-   "label": "Access Token Expiry (Seconds)"
-  },
-  {
-   "default": "30",
-   "description": "How long refresh tokens remain valid in days (default: 30 days).",
-   "fieldname": "refresh_token_expiry_days",
-   "fieldtype": "Int",
-   "label": "Refresh Token Expiry (Days)"
-  },
-  {
-   "default": "all",
-   "description": "OAuth scope for tokens (e.g., 'all' or specific API scopes).",
-   "fieldname": "ghost_token_scope",
-   "fieldtype": "Data",
-   "label": "Token Scope"
-  },
-  {
-   "default": "1",
-   "description": "Automatically revoke ghost user tokens when converting to real user.",
-   "fieldname": "invalidate_ghost_tokens_on_conversion",
-   "fieldtype": "Check",
-   "label": "Invalidate Ghost Tokens on Conversion"
-  },
-  {
-   "fieldname": "section_break_conversion",
-   "fieldtype": "Section Break",
-   "label": "Conversion Settings"
-  },
-  {
-   "default": "0",
-   "description": "If enabled, an OTP will be sent to the Real Email before conversion is finalized.",
-   "fieldname": "verify_otp_on_conversion",
-   "fieldtype": "Check",
-   "label": "Verify OTP on Conversion"
-  },
-  {
-   "fieldname": "tab_otp",
-   "fieldtype": "Tab Break",
-   "label": "OTP Configuration"
-  },
-  {
-   "default": "10",
-   "fieldname": "expiry_time_minutes",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Expiry Time (Minutes)",
-   "reqd": 1
-  },
-  {
-   "default": "0",
-   "description": "If enabled, allows generating OTPs without email or phone. The OTP code will be returned in the API response.",
-   "fieldname": "allow_anonymous_otp",
-   "fieldtype": "Check",
-   "label": "Allow Anonymous OTP"
-  },
-  {
-   "default": "5",
-   "description": "Maximum number of OTP Attempts for a user[email/phone] per hour",
-   "fieldname": "max_otp_attempts",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Max OTP Attempts",
-   "reqd": 1
-  },
-  {
-   "default": "6",
-   "fieldname": "otp_length",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "OTP Length (Digits)",
-   "reqd": 1
-  },
-  {
-   "default": "Numeric",
-   "fieldname": "otp_code_type",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "OTP Code Type",
-   "options": "Numeric\nMixed",
-   "reqd": 1
-  },
-  {
-   "fieldname": "section_delivery",
-   "fieldtype": "Section Break",
-   "label": "Delivery Settings"
-  },
-  {
-   "default": "Email",
-   "fieldname": "otp_delivery_type",
-   "fieldtype": "Select",
-   "label": "OTP Delivery Type",
-   "options": "Email\nSMS\nBoth\nNone",
-   "reqd": 1
-  },
-  {
-   "depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
-   "fieldname": "email_account",
-   "fieldtype": "Link",
-   "label": "Email Account",
-   "link_filters": "[[\"Email Account\",\"enable_outgoing\",\"=\",1]]",
-   "mandatory_depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
-   "options": "Email Account"
-  },
-  {
-   "depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
-   "description": "Email Template contains  {{ otp_code }} variable to be formated.",
-   "fieldname": "email_template",
-   "fieldtype": "Link",
-   "label": "Email Template",
-   "mandatory_depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
-   "options": "Email Template"
-  },
-  {
-   "depends_on": "eval:doc.otp_delivery_type==='SMS' || doc.otp_delivery_type==='Both'",
-   "description": "Full path to SMS sender function (e.g., 'custom_app.utils.send_sms').",
-   "fieldname": "sms_sender",
-   "fieldtype": "Data",
-   "label": "SMS Sender Function",
-   "mandatory_depends_on": "eval:doc.otp_delivery_type==='SMS' || doc.otp_delivery_type==='Both'"
-  },
-  {
-   "fieldname": "oauth_token_settings_tab",
-   "fieldtype": "Tab Break",
-   "label": "OAuth Token Settings"
-  }
- ],
- "issingle": 1,
- "links": [],
- "modified": "2026-01-31 17:42:27.355341",
- "modified_by": "Administrator",
- "module": "Ghost",
- "name": "Ghost Settings",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+    "actions": [],
+    "creation": "2026-01-19 10:00:00",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "tab_ghost",
+        "enable_ghost_feature",
+        "enable_auto_cleanup",
+        "ghost_role",
+        "ghost_email_domain",
+        "expiration_days",
+        "default_user_role",
+        "client_id",
+        "section_break_conversion",
+        "verify_otp_on_conversion",
+        "tab_otp",
+        "expiry_time_minutes",
+        "allow_anonymous_otp",
+        "sandbox_mode",
+        "sandbox_otp",
+        "max_otp_attempts",
+        "otp_length",
+        "otp_code_type",
+        "section_delivery",
+        "otp_delivery_type",
+        "email_account",
+        "email_template",
+        "sms_sender",
+        "oauth_token_settings_tab",
+        "section_break_oauth",
+        "access_token_expiry_seconds",
+        "refresh_token_expiry_days",
+        "ghost_token_scope",
+        "invalidate_ghost_tokens_on_conversion"
+    ],
+    "fields": [
+        {
+            "fieldname": "tab_ghost",
+            "fieldtype": "Tab Break",
+            "label": "Ghost Identity"
+        },
+        {
+            "default": "0",
+            "fieldname": "enable_ghost_feature",
+            "fieldtype": "Check",
+            "label": "Enable Ghost Feature"
+        },
+        {
+            "default": "1",
+            "fieldname": "enable_auto_cleanup",
+            "fieldtype": "Check",
+            "label": "Enable Auto Cleanup"
+        },
+        {
+            "default": "Guest",
+            "fieldname": "ghost_role",
+            "fieldtype": "Link",
+            "label": "Ghost Role",
+            "options": "Role"
+        },
+        {
+            "default": "guest.local",
+            "fieldname": "ghost_email_domain",
+            "fieldtype": "Data",
+            "label": "Ghost Email Domain"
+        },
+        {
+            "default": "30",
+            "fieldname": "expiration_days",
+            "fieldtype": "Int",
+            "label": "Expiration Days"
+        },
+        {
+            "description": "Role to assign to new users (Direct Signup) or after conversion (Ghost). If empty, no role changes are made.",
+            "fieldname": "default_user_role",
+            "fieldtype": "Link",
+            "label": "Default User Role",
+            "options": "Role"
+        },
+        {
+            "description": "OAuth Client ID to use for token generation. Required when Ghost Feature is enabled.",
+            "fieldname": "client_id",
+            "fieldtype": "Data",
+            "label": "Client ID",
+            "mandatory_depends_on": "eval:doc.enable_ghost_feature==1"
+        },
+        {
+            "fieldname": "section_break_oauth",
+            "fieldtype": "Section Break"
+        },
+        {
+            "default": "3600",
+            "description": "How long access tokens remain valid in seconds (default: 3600 = 1 hour).",
+            "fieldname": "access_token_expiry_seconds",
+            "fieldtype": "Int",
+            "label": "Access Token Expiry (Seconds)"
+        },
+        {
+            "default": "30",
+            "description": "How long refresh tokens remain valid in days (default: 30 days).",
+            "fieldname": "refresh_token_expiry_days",
+            "fieldtype": "Int",
+            "label": "Refresh Token Expiry (Days)"
+        },
+        {
+            "default": "all",
+            "description": "OAuth scope for tokens (e.g., 'all' or specific API scopes).",
+            "fieldname": "ghost_token_scope",
+            "fieldtype": "Data",
+            "label": "Token Scope"
+        },
+        {
+            "default": "1",
+            "description": "Automatically revoke ghost user tokens when converting to real user.",
+            "fieldname": "invalidate_ghost_tokens_on_conversion",
+            "fieldtype": "Check",
+            "label": "Invalidate Ghost Tokens on Conversion"
+        },
+        {
+            "fieldname": "section_break_conversion",
+            "fieldtype": "Section Break",
+            "label": "Conversion Settings"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, an OTP will be sent to the Real Email before conversion is finalized.",
+            "fieldname": "verify_otp_on_conversion",
+            "fieldtype": "Check",
+            "label": "Verify OTP on Conversion"
+        },
+        {
+            "fieldname": "tab_otp",
+            "fieldtype": "Tab Break",
+            "label": "OTP Configuration"
+        },
+        {
+            "default": "10",
+            "fieldname": "expiry_time_minutes",
+            "fieldtype": "Int",
+            "in_list_view": 1,
+            "label": "Expiry Time (Minutes)",
+            "reqd": 1
+        },
+        {
+            "default": "0",
+            "description": "If enabled, allows generating OTPs without email or phone. The OTP code will be returned in the API response.",
+            "fieldname": "allow_anonymous_otp",
+            "fieldtype": "Check",
+            "label": "Allow Anonymous OTP"
+        },
+        {
+            "default": "0",
+            "description": "Sandbox mode bypasses real OTP generation and delivery. Use only in development/QA environments. Authentication will succeed only with the Sandbox OTP code below.",
+            "fieldname": "sandbox_mode",
+            "fieldtype": "Check",
+            "label": "Sandbox Mode"
+        },
+        {
+            "default": "000141",
+            "depends_on": "eval:doc.sandbox_mode==1",
+            "description": "Fixed OTP code accepted when Sandbox Mode is enabled. Share with your QA team.",
+            "fieldname": "sandbox_otp",
+            "fieldtype": "Data",
+            "label": "Sandbox OTP Code",
+            "read_only": 1
+        },
+        {
+            "default": "5",
+            "description": "Maximum number of OTP Attempts for a user[email/phone] per hour",
+            "fieldname": "max_otp_attempts",
+            "fieldtype": "Int",
+            "in_list_view": 1,
+            "label": "Max OTP Attempts",
+            "reqd": 1
+        },
+        {
+            "default": "6",
+            "fieldname": "otp_length",
+            "fieldtype": "Int",
+            "in_list_view": 1,
+            "label": "OTP Length (Digits)",
+            "reqd": 1
+        },
+        {
+            "default": "Numeric",
+            "fieldname": "otp_code_type",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "label": "OTP Code Type",
+            "options": "Numeric\nMixed",
+            "reqd": 1
+        },
+        {
+            "fieldname": "section_delivery",
+            "fieldtype": "Section Break",
+            "label": "Delivery Settings"
+        },
+        {
+            "default": "Email",
+            "fieldname": "otp_delivery_type",
+            "fieldtype": "Select",
+            "label": "OTP Delivery Type",
+            "options": "Email\nSMS\nBoth\nNone",
+            "reqd": 1
+        },
+        {
+            "depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
+            "fieldname": "email_account",
+            "fieldtype": "Link",
+            "label": "Email Account",
+            "link_filters": "[[\"Email Account\",\"enable_outgoing\",\"=\",1]]",
+            "mandatory_depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
+            "options": "Email Account"
+        },
+        {
+            "depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
+            "description": "Email Template contains  {{ otp_code }} variable to be formated.",
+            "fieldname": "email_template",
+            "fieldtype": "Link",
+            "label": "Email Template",
+            "mandatory_depends_on": "eval:doc.otp_delivery_type==='Email' || doc.otp_delivery_type==='Both'",
+            "options": "Email Template"
+        },
+        {
+            "depends_on": "eval:doc.otp_delivery_type==='SMS' || doc.otp_delivery_type==='Both'",
+            "description": "Full path to SMS sender function (e.g., 'custom_app.utils.send_sms').",
+            "fieldname": "sms_sender",
+            "fieldtype": "Data",
+            "label": "SMS Sender Function",
+            "mandatory_depends_on": "eval:doc.otp_delivery_type==='SMS' || doc.otp_delivery_type==='Both'"
+        },
+        {
+            "fieldname": "oauth_token_settings_tab",
+            "fieldtype": "Tab Break",
+            "label": "OAuth Token Settings"
+        }
+    ],
+    "issingle": 1,
+    "links": [],
+    "modified": "2026-02-23 15:58:00.000000",
+    "modified_by": "Administrator",
+    "module": "Ghost",
+    "name": "Ghost Settings",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "row_format": "Dynamic",
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
 }

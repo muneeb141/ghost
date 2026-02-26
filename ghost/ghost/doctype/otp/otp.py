@@ -51,7 +51,20 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 	settings = frappe.get_single("Ghost Settings")
 	delivery_method = settings.otp_delivery_type or "Email"
 
-
+	# ── Sandbox short-circuit ────────────────────────────────────────────────
+	# When sandbox mode is active, bypass all real OTP generation and delivery.
+	# Return the fixed code immediately – no DB record, no email/SMS.
+	if getattr(settings, "sandbox_mode", 0):
+		sandbox_otp = getattr(settings, "sandbox_otp", None) or "000141"
+		frappe.logger().debug("Ghost: sandbox_mode active – returning fixed OTP")
+		return {
+			"otp_code": sandbox_otp,
+			"name": None,
+			"sent": False,
+			"send_results": [],
+			"sandbox": True,
+		}
+	# ─────────────────────────────────────────────────────────────────────────
 
 	if not settings.allow_anonymous_otp:
 		if delivery_method in ["Email", "Both"] and not email:
@@ -131,6 +144,18 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 
 
 def verify(otp_code, email=None, phone=None, purpose=None):
+	# ── Sandbox short-circuit ────────────────────────────────────────────────
+	# Use get_cached_doc so repeated verify() calls during a test run don't
+	# incur extra DB round-trips for the settings read.
+	settings = frappe.get_cached_doc("Ghost Settings")
+	if getattr(settings, "sandbox_mode", 0):
+		sandbox_otp = getattr(settings, "sandbox_otp", None) or "000141"
+		if otp_code == sandbox_otp:
+			frappe.logger().debug("Ghost: sandbox_mode – OTP accepted")
+			return {"valid": True, "sandbox": True}
+		frappe.throw(_("Invalid OTP"))
+	# ─────────────────────────────────────────────────────────────────────────
+
 	otp_doc = None
 	if not purpose:
 		purpose = "Login"
