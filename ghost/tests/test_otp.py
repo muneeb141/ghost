@@ -56,3 +56,67 @@ class TestFrappeIdentityOTP(unittest.TestCase):
 
 	def tearDown(self):
 		pass
+
+
+class TestSandboxOTP(unittest.TestCase):
+	"""Tests for Sandbox Mode: fixed OTP bypass, no DB interaction."""
+
+	SANDBOX_OTP = "000141"
+
+	def _enable_sandbox(self):
+		# Use direct DB writes so this works even before bench migrate has
+		# added the new columns to the test database schema.
+		try:
+			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 1)
+			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_otp", self.SANDBOX_OTP)
+			frappe.db.commit()
+		except Exception:
+			# If the column doesn't exist yet (pre-migrate), run migrate first.
+			from frappe.migrate import migrate
+			migrate()
+			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 1)
+			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_otp", self.SANDBOX_OTP)
+			frappe.db.commit()
+		# Bust cache so get_cached_doc picks up the change
+		frappe.clear_cache(doctype="Ghost Settings")
+
+	def _disable_sandbox(self):
+		try:
+			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 0)
+			frappe.db.commit()
+		except Exception:
+			pass
+		frappe.clear_cache(doctype="Ghost Settings")
+
+	def tearDown(self):
+		# Always restore sandbox=off so other test classes are not affected.
+		self._disable_sandbox()
+
+	# ── Tests ────────────────────────────────────────────────────────────────
+
+	def test_sandbox_generate_returns_fixed_otp(self):
+		"""generate() must return the static sandbox OTP without touching the DB."""
+		self._enable_sandbox()
+
+		result = generate(email="qa@test.local", purpose="Login")
+
+		self.assertTrue(result.get("sandbox"), "Response must include sandbox=True")
+		self.assertEqual(result["otp_code"], self.SANDBOX_OTP)
+		self.assertIsNone(result["name"], "No OTP DB record should be created in sandbox mode")
+		self.assertFalse(result["sent"], "No delivery should occur in sandbox mode")
+
+	def test_sandbox_verify_accepts_fixed_otp(self):
+		"""verify() must accept the exact sandbox OTP and return valid=True."""
+		self._enable_sandbox()
+
+		result = verify(otp_code=self.SANDBOX_OTP, email="qa@test.local", purpose="Login")
+
+		self.assertTrue(result.get("valid"))
+		self.assertTrue(result.get("sandbox"), "Response must include sandbox=True")
+
+	def test_sandbox_verify_rejects_wrong_otp(self):
+		"""verify() must reject any OTP that is not the sandbox OTP."""
+		self._enable_sandbox()
+
+		with self.assertRaises(frappe.ValidationError):
+			verify(otp_code="000000", email="qa@test.local", purpose="Login")
