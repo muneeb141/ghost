@@ -156,6 +156,8 @@ We've included a **Bruno collection** with ready-to-run API tests:
 
 **That's it!** Everything else has smart defaults.
 
+**OTP delivery (WhatsApp / SMS)** → [OTP Delivery Setup →](docs/otp-delivery-setup.md) — per-site checklist for wiring `sms_sender` to WhatsApp Cloud API or the android SMS gateway.
+
 ---
 
 ## 🔐 Security (Yes, It's Production-Ready)
