@@ -157,6 +157,11 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		f"ghost={ghost_email} real={real_email}"
 	)
 
+	# Capture the source user's mobile before rename/migrate renames or disables it,
+	# so it can be carried onto the converted user below (Phone Lookup / mobile login
+	# find returning users by User.mobile_no).
+	ghost_mobile = frappe.db.get_value("User", ghost_email, "mobile_no")
+
 	existence_start = time.monotonic()
 	target_exists = frappe.db.exists("User", real_email)
 	logger.info(
@@ -204,6 +209,17 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		last_name=last_name,
 		conservative_name_update=target_exists,
 	)
+	# Carry the phone forward so future mobile logins recognize this user, and so
+	# the linked Contact gets the number too. mobile_no is UNIQUE: the merge path
+	# leaves the number on the now-disabled source user, which would collide —
+	# release it there first, then set it on the target and let save() persist it
+	# and sync the Contact (User.on_update -> create_contact). The rename path
+	# already carries the number on the same row, so the guard skips it.
+	if ghost_mobile and not user.mobile_no:
+		if ghost_email != real_email and frappe.db.exists("User", ghost_email):
+			frappe.db.set_value("User", ghost_email, "mobile_no", None, update_modified=False)
+		user.mobile_no = ghost_mobile
+
 	user.save(ignore_permissions=True)
 	logger.info(
 		f"Ghost conversion role/profile update duration_ms={(time.monotonic() - role_profile_start) * 1000:.2f} "
