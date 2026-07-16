@@ -212,3 +212,75 @@ def refresh_bearer_token(refresh_token):
 		"user": token_name.user,
 		**new_tokens
 	}
+
+
+def _google_client_id():
+	"""Return the configured Google OAuth web client id, or raise."""
+	client_id = frappe.conf.get("google_web_client_id")
+	if not client_id:
+		frappe.throw(
+			_("Google login is not configured. Set 'google_web_client_id' in site config.")
+		)
+	return client_id
+
+
+def _verify_google_id_token(token):
+	"""Verify a Google ID token's signature, audience and expiry; return its claims.
+
+	Isolated so the single crypto/network call has one home and can be mocked in
+	tests. Uses Google's own library (google-auth) — we never parse the JWT
+	ourselves. The audience is pinned to our client id, which is what stops a
+	token minted for another app from being replayed against us.
+	"""
+	from google.auth.transport.requests import Request
+	from google.oauth2 import id_token as google_id_token
+
+	try:
+		return google_id_token.verify_oauth2_token(token, Request(), audience=_google_client_id())
+	except ValueError:
+		# google-auth raises ValueError on bad signature, wrong audience or expiry.
+		frappe.throw(_("Invalid Google token"), frappe.AuthenticationError)
+
+
+@frappe.whitelist(allow_guest=True)
+def google_login(id_token, client_id=None):
+	"""Authenticate with a Google ID token from the native Sign-In SDK.
+
+	The email is verified by Google upfront, so there is no ghost/placeholder
+	stage: find the user by email, else create one via the shared
+	create_new_user (which applies the default role from Ghost Settings), then
+	mint the usual OAuth tokens. Returns the same token shape as OTP login.
+	"""
+	if not id_token:
+		frappe.throw(_("Google ID token is required"))
+
+	info = _verify_google_id_token(id_token)
+
+	if info.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+		frappe.throw(_("Invalid Google token issuer"), frappe.AuthenticationError)
+
+	if not info.get("email_verified"):
+		frappe.throw(_("Google account email is not verified"), frappe.AuthenticationError)
+
+	email = info.get("email")
+	if not email:
+		frappe.throw(_("Google account has no email"), frappe.AuthenticationError)
+
+	existing = frappe.db.get_value("User", {"email": email}, "name")
+	user = existing or create_new_user(
+		email=email,
+		first_name=info.get("given_name") or email.split("@")[0],
+		last_name=info.get("family_name"),
+	)
+
+	response = {
+		"status": "success",
+		"user": user,
+		"is_new_user": not existing,
+	}
+
+	tokens = generate_oauth_tokens(user, client_id)
+	if tokens:
+		response.update(tokens)
+
+	return response

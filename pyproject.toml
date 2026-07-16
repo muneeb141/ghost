@@ -9,6 +9,7 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
+    "google-auth>=2.0.0",  # Verify Google ID tokens for google_login
 ]
 
 [build-system]
