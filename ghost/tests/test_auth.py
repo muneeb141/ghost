@@ -1,6 +1,6 @@
 import frappe
 import unittest
-from ghost.api.auth import login
+from ghost.api.auth import login, refresh_bearer_token, generate_oauth_tokens
 from ghost.api.ghost import create_ghost_session
 from ghost.ghost.doctype.otp.otp import verify as ghost_verify_otp
 from ghost.api.otp import send_otp
@@ -133,6 +133,35 @@ class TestGhostAuth(unittest.TestCase):
 		self.assertIsNotNone(token_doc, "Token document not found in DB")
 		# We don't strictly enforce client check here as naming series might differ, but token creation is success.
 		# self.assertEqual(token_doc.client, client_id)
+
+	def test_refresh_bearer_token_returns_user(self):
+		"""
+		Test Scenario: Refresh token response includes the user field.
+		"""
+		email = "refresh_user@example.com"
+		if not frappe.db.exists("User", email):
+			user = frappe.new_doc("User")
+			user.email = email
+			user.first_name = "Refresh"
+			user.save(ignore_permissions=True)
+
+		client_id = "test_refresh_client"
+		if not frappe.db.exists("OAuth Client", client_id):
+			c = frappe.new_doc("OAuth Client")
+			c.client_id = client_id
+			c.app_name = "Test Refresh App"
+			c.skat = "1"
+			c.default_redirect_uri = "http://localhost"
+			c.redirect_uris = "http://localhost"
+			c.save(ignore_permissions=True)
+
+		tokens = generate_oauth_tokens(email, client_id)
+		self.assertIn("refresh_token", tokens)
+
+		response = refresh_bearer_token(tokens["refresh_token"])
+		self.assertEqual(response["status"], "success")
+		self.assertIn("user", response)
+		self.assertEqual(response["user"], email)
 
 	def tearDown(self):
 		frappe.set_user("Administrator")

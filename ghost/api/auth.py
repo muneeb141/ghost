@@ -211,5 +211,6 @@ def refresh_bearer_token(refresh_token):
 	return {
 		"status": "success",
 		"message": "Token refreshed successfully",
+		"user": token_name.user,
 		**new_tokens
 	}
