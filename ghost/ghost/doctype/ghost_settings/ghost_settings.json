@@ -32,7 +32,13 @@
         "access_token_expiry_seconds",
         "refresh_token_expiry_days",
         "ghost_token_scope",
-        "invalidate_ghost_tokens_on_conversion"
+        "invalidate_ghost_tokens_on_conversion",
+        "tab_integrations",
+        "section_break_webhooks",
+        "enable_webhooks",
+        "webhook_url",
+        "webhook_secret",
+        "enable_realtime_events"
     ],
     "fields": [
         {
@@ -234,11 +240,50 @@
             "fieldname": "oauth_token_settings_tab",
             "fieldtype": "Tab Break",
             "label": "OAuth Token Settings"
+        },
+        {
+            "fieldname": "tab_integrations",
+            "fieldtype": "Tab Break",
+            "label": "Integrations"
+        },
+        {
+            "fieldname": "section_break_webhooks",
+            "fieldtype": "Section Break",
+            "label": "Webhooks & Events"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, a signed webhook is POSTed and Frappe hooks are fired on every successful ghost conversion.",
+            "fieldname": "enable_webhooks",
+            "fieldtype": "Check",
+            "label": "Enable Webhooks"
+        },
+        {
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "URL to POST conversion events to (e.g., your CRM or Zapier endpoint).",
+            "fieldname": "webhook_url",
+            "fieldtype": "Data",
+            "label": "Webhook URL"
+        },
+        {
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "Secret used to sign webhook payloads. Receivers verify the X-Ghost-Signature header with HMAC-SHA256.",
+            "fieldname": "webhook_secret",
+            "fieldtype": "Password",
+            "label": "Webhook Secret"
+        },
+        {
+            "default": "0",
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "If enabled, a Frappe realtime event 'ghost_converted' is published on every successful conversion.",
+            "fieldname": "enable_realtime_events",
+            "fieldtype": "Check",
+            "label": "Enable Realtime Events"
         }
     ],
     "issingle": 1,
     "links": [],
-    "modified": "2026-02-23 15:58:00.000000",
+    "modified": "2026-08-02 18:15:00.000000",
     "modified_by": "Administrator",
     "module": "Ghost",
     "name": "Ghost Settings",
