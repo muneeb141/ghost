@@ -32,7 +32,10 @@
         "access_token_expiry_seconds",
         "refresh_token_expiry_days",
         "ghost_token_scope",
-        "invalidate_ghost_tokens_on_conversion"
+        "invalidate_ghost_tokens_on_conversion",
+        "section_break_merging",
+        "enable_multi_device_merge",
+        "merge_detection_method"
     ],
     "fields": [
         {
@@ -234,6 +237,26 @@
             "fieldname": "oauth_token_settings_tab",
             "fieldtype": "Tab Break",
             "label": "OAuth Token Settings"
+        },
+        {
+            "fieldname": "section_break_merging",
+            "fieldtype": "Section Break",
+            "label": "Multi-Device Merging"
+        },
+        {
+            "default": "0",
+            "description": "Automatically merge multiple ghost sessions belonging to the same user upon conversion.",
+            "fieldname": "enable_multi_device_merge",
+            "fieldtype": "Check",
+            "label": "Enable Multi-Device Merge"
+        },
+        {
+            "default": "Lead Email",
+            "depends_on": "eval:doc.enable_multi_device_merge==1",
+            "fieldname": "merge_detection_method",
+            "fieldtype": "Select",
+            "label": "Merge Detection Method",
+            "options": "Lead Email\nFingerprint\nBoth"
         }
     ],
     "issingle": 1,

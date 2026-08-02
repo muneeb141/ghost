@@ -240,6 +240,18 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 			"token_type": new_tokens["token_type"]
 		})
 
+	if getattr(settings, "enable_multi_device_merge", 0):
+		from ghost.api.merge import find_related_ghosts, merge_all_ghosts
+		related = find_related_ghosts(real_email)
+		# exclude the current one if it was somehow in there
+		related = [g for g in related if g != ghost_email]
+		
+		if related:
+			merged_count = merge_all_ghosts(related, real_email)
+			if merged_count > 0:
+				response["merged_ghosts"] = related
+				response["merged_count"] = merged_count
+
 	frappe.db.commit()
 	logger.info(
 		f"Ghost conversion total duration_ms={(time.monotonic() - total_start) * 1000:.2f} "
