@@ -93,7 +93,7 @@ def create_ghost_session(email=None):
 	}
 
 @frappe.whitelist()
-def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None, otp_code=None):
+def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None, otp_code=None, bypass_otp=False):
 	"""
 	Converts a Ghost User to a Real User using one of two conversion modes:
 	- rename: lightweight rename when target user does not exist
@@ -139,7 +139,7 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		frappe.throw(_("Ghost user {} does not exist").format(ghost_email))
 
 	otp_start = time.monotonic()
-	if settings.verify_otp_on_conversion:
+	if settings.verify_otp_on_conversion and not bypass_otp:
 		if not otp_code:
 			frappe.throw(_("OTP Code is required for conversion."))
 

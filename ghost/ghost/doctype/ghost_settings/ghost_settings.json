@@ -14,6 +14,11 @@
         "client_id",
         "section_break_conversion",
         "verify_otp_on_conversion",
+        "section_break_magic_link",
+        "enable_magic_link",
+        "magic_link_expiry_minutes",
+        "magic_link_redirect_url",
+        "magic_link_email_template",
         "tab_otp",
         "expiry_time_minutes",
         "allow_anonymous_otp",
@@ -128,6 +133,41 @@
             "fieldname": "verify_otp_on_conversion",
             "fieldtype": "Check",
             "label": "Verify OTP on Conversion"
+        },
+        {
+            "fieldname": "section_break_magic_link",
+            "fieldtype": "Section Break",
+            "label": "Magic Link"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, users can receive an email with a clickable link to convert their session.",
+            "fieldname": "enable_magic_link",
+            "fieldtype": "Check",
+            "label": "Enable Magic Link"
+        },
+        {
+            "default": "30",
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "How long the magic link remains valid in minutes.",
+            "fieldname": "magic_link_expiry_minutes",
+            "fieldtype": "Int",
+            "label": "Magic Link Expiry (Minutes)"
+        },
+        {
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "URL to redirect to after successful conversion (e.g., /dashboard).",
+            "fieldname": "magic_link_redirect_url",
+            "fieldtype": "Data",
+            "label": "Magic Link Redirect URL"
+        },
+        {
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "Email Template containing the {{ magic_link }} variable.",
+            "fieldname": "magic_link_email_template",
+            "fieldtype": "Link",
+            "label": "Magic Link Email Template",
+            "options": "Email Template"
         },
         {
             "fieldname": "tab_otp",
