@@ -70,3 +70,53 @@ def expire_otps():
 	except Exception as e:
 		frappe.log_error(f"Error in expire_otps scheduled function: {e}", "OTP Expiration")
 		return {"expired_count": 0, "error": e}
+
+def send_lead_reminders():
+	"""
+	Find leads older than lead_reminder_hours that haven't converted,
+	send a reminder email, and mark conversion_reminder_sent.
+	"""
+	settings = frappe.get_single("Ghost Settings")
+	if not settings.enable_lead_capture or not settings.lead_reminder_email_template:
+		return
+		
+	reminder_hours = settings.lead_reminder_hours or 24
+	from frappe.utils import add_to_date
+	
+	threshold_date = add_to_date(now_datetime(), hours=-reminder_hours)
+	
+	leads = frappe.get_all("Ghost Lead", 
+		filters={
+			"status": "Captured",
+			"conversion_reminder_sent": 0,
+			"creation": ["<", threshold_date]
+		},
+		fields=["name", "ghost_email", "captured_email"]
+	)
+	
+	if not leads:
+		return
+		
+	email_template = frappe.get_doc("Email Template", settings.lead_reminder_email_template)
+	
+	for lead in leads:
+		try:
+			args = {
+				"ghost_email": lead.ghost_email,
+				"captured_email": lead.captured_email
+			}
+			subject = frappe.render_template(email_template.subject, args)
+			content = frappe.render_template(email_template.response, args)
+			
+			frappe.sendmail(
+				recipients=[lead.captured_email],
+				subject=subject,
+				content=content,
+				now=True
+			)
+			
+			frappe.db.set_value("Ghost Lead", lead.name, "conversion_reminder_sent", 1)
+		except Exception as e:
+			frappe.log_error(f"Error sending lead reminder to {lead.captured_email}: {str(e)}", "Lead Reminder")
+	
+	frappe.db.commit()

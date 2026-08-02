@@ -240,6 +240,13 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 			"token_type": new_tokens["token_type"]
 		})
 
+	if getattr(settings, "enable_lead_capture", 0):
+		frappe.db.sql("""
+			UPDATE `tabGhost Lead` 
+			SET status = 'Converted' 
+			WHERE ghost_email IN (%s, %s)
+		""", (ghost_email, real_email))
+
 	frappe.db.commit()
 	logger.info(
 		f"Ghost conversion total duration_ms={(time.monotonic() - total_start) * 1000:.2f} "

@@ -163,6 +163,9 @@ scheduler_events = {
 	"daily": [
 		"ghost.tasks.delete_expired_ghost_users"
 	],
+	"hourly": [
+		"ghost.tasks.send_lead_reminders"
+	],
 	"cron": {
 		"*/10 * * * *": [
 			"ghost.tasks.expire_otps"

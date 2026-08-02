@@ -32,7 +32,11 @@
         "access_token_expiry_seconds",
         "refresh_token_expiry_days",
         "ghost_token_scope",
-        "invalidate_ghost_tokens_on_conversion"
+        "invalidate_ghost_tokens_on_conversion",
+        "tab_break_lead_capture",
+        "enable_lead_capture",
+        "lead_reminder_hours",
+        "lead_reminder_email_template"
     ],
     "fields": [
         {
@@ -234,6 +238,34 @@
             "fieldname": "oauth_token_settings_tab",
             "fieldtype": "Tab Break",
             "label": "OAuth Token Settings"
+        },
+        {
+            "fieldname": "tab_break_lead_capture",
+            "fieldtype": "Tab Break",
+            "label": "Lead Capture"
+        },
+        {
+            "default": "0",
+            "description": "Allow capturing a ghost user's email before full conversion.",
+            "fieldname": "enable_lead_capture",
+            "fieldtype": "Check",
+            "label": "Enable Lead Capture"
+        },
+        {
+            "default": "24",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "description": "Hours before sending a reminder to convert.",
+            "fieldname": "lead_reminder_hours",
+            "fieldtype": "Int",
+            "label": "Lead Reminder Hours"
+        },
+        {
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "description": "Email Template for the reminder.",
+            "fieldname": "lead_reminder_email_template",
+            "fieldtype": "Link",
+            "label": "Lead Reminder Email Template",
+            "options": "Email Template"
         }
     ],
     "issingle": 1,
