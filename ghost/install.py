@@ -14,7 +14,7 @@ def create_ghost_role():
 
 def setup_default_settings():
 	settings = frappe.get_single("Ghost Settings")
-	settings.enable_ghost_feature = 1
+	settings.enable_ghost_feature = 0
 	settings.enable_auto_cleanup = 1
 	settings.ghost_role = "Ghost"
 	settings.save()

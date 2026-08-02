@@ -149,6 +149,7 @@ We've included a **Bruno collection** with ready-to-run API tests:
 
 | Setting | What It Does | Default |
 |---------|--------------|---------|
+| **Enable Ghost** | Turn ghost conversions on/off | Disabled |
 | **Client ID** | OAuth client (required!) | - |
 | Access Token Expiry | How long before re-auth | 1 hour |
 | Invalidate on Conversion | Revoke ghost tokens when converting | ✓ |
