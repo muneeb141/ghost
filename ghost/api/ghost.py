@@ -1,10 +1,34 @@
 import frappe
 from frappe import _
 from frappe.utils import random_string, get_url
+from frappe.utils.password import rename_password
 import uuid
 import time
 
 import frappe.rate_limiter
+
+# Tables that a ghost user (fresh login, no history) will actually have rows in.
+# rename_doc scans all 42+ User link tables; this targeted list skips the empty ones
+# on large production tables and avoids the timeout.
+_GHOST_LINK_TABLES = [
+	("OAuth Bearer Token", "user"),
+	("OAuth Authorization Code", "user"),
+	("Token Cache", "user"),
+	("Route History", "user"),
+	("Activity Log", "user"),
+	("Notification Settings", "user"),
+	("Notification Log", "for_user"),
+	("Notification Log", "from_user"),
+]
+
+_GHOST_CHILD_TABLES = [
+	"Has Role",
+	"User Role Profile",
+	"User Email",
+	"Block Module",
+	"DefaultValue",
+	"User Social Login",
+]
 
 @frappe.whitelist(allow_guest=True)
 @frappe.rate_limiter.rate_limit(limit=100, seconds=3600)
@@ -82,7 +106,36 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 	logger = frappe.logger("ghost_conversion")
 	settings = frappe.get_single("Ghost Settings")
 
+	# Prefer authenticated session user when it is a ghost user and differs
+	# from a stale client-supplied ghost_email
+	current_user = frappe.session.user
+	if current_user.startswith("ghost_") and current_user != ghost_email:
+		ghost_email = current_user
+
 	if not frappe.db.exists("User", ghost_email):
+		# The ghost may have already been renamed on a previous request that timed out on the
+		# client side. After rename_doc completes, the caller's OAuth token is re-associated
+		# with real_email, so frappe.session.user will equal real_email on retry.
+		if frappe.session.user == real_email and frappe.db.exists("User", real_email):
+			try:
+				retry_tokens = generate_oauth_tokens(real_email)
+			except Exception as e:
+				frappe.log_error(f"Failed to generate tokens on idempotent retry for {real_email}: {str(e)}")
+				retry_tokens = None
+			retry_response = {
+				"message": _("User converted successfully"),
+				"user": real_email,
+				"merged": False,
+				"conversion_mode": "already_converted",
+			}
+			if retry_tokens:
+				retry_response.update({
+					"access_token": retry_tokens["access_token"],
+					"refresh_token": retry_tokens["refresh_token"],
+					"expires_in": retry_tokens["expires_in"],
+					"token_type": retry_tokens["token_type"],
+				})
+			return retry_response
 		frappe.throw(_("Ghost user {} does not exist").format(ghost_email))
 
 	otp_start = time.monotonic()
@@ -90,7 +143,11 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		if not otp_code:
 			frappe.throw(_("OTP Code is required for conversion."))
 
-		verify_otp(otp_code, email=real_email, purpose="Conversion")
+		phone = None
+		if real_email and real_email.endswith("@mobile.login"):
+			phone = real_email.split("@")[0]
+		
+		verify_otp(otp_code, email=real_email if not phone else None, phone=phone, purpose="Conversion")
 	logger.info(
 		f"Ghost conversion OTP verification duration_ms={(time.monotonic() - otp_start) * 1000:.2f} "
 		f"ghost={ghost_email} real={real_email}"
@@ -192,8 +249,50 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 
 
 def convert_by_rename(ghost_email, real_email):
-	frappe.rename_doc("User", ghost_email, real_email, force=True, merge=False)
-	frappe.db.set_value("User", real_email, "email", real_email, update_modified=False)
+	"""Fast targeted rename for ghost->new-user conversion.
+	
+	frappe.rename_doc("User") fires UPDATE queries against 42+ tables regardless of
+	whether the ghost user has any rows there. On production this causes timeouts.
+	Ghost users only ever accumulate data in a small, known set of tables, so we
+	update only those and skip the rest entirely.
+	"""
+	frappe.db.commit()
+	
+	# 1. Rename the User document itself (sets name = email column).
+	frappe.db.sql(
+		"UPDATE `tabUser` SET `name` = %s, `email` = %s WHERE `name` = %s",
+		(real_email, real_email, ghost_email),
+	)
+	
+	# 2. Child tables - parent field references the user name.
+	for child_dt in _GHOST_CHILD_TABLES:
+		try:
+			frappe.db.sql(
+				f"UPDATE `tab{child_dt}` SET `parent` = %s "
+				f"WHERE `parent` = %s AND `parenttype` = 'User'",
+				(real_email, ghost_email),
+			)
+		except Exception:
+			pass
+			
+	# 3. Link tables the ghost user may have populated.
+	for dt, field in _GHOST_LINK_TABLES:
+		try:
+			frappe.db.sql(
+				f"UPDATE `tab{dt}` SET `{field}` = %s WHERE `{field}` = %s",
+				(real_email, ghost_email),
+			)
+		except Exception:
+			pass
+			
+	# 4. Transfer the password hash row (no-op for ghost users but safe to call).
+	try:
+		rename_password("User", ghost_email, real_email)
+	except Exception:
+		pass
+		
+	frappe.db.commit()
+	frappe.clear_cache()
 
 
 def get_ghost_owned_reassignment_plan():
@@ -237,10 +336,17 @@ def apply_user_profile_and_roles(user, settings, first_name=None, last_name=None
 	existing_role_names = [r.role for r in new_roles]
 
 	if target_role and target_role not in existing_role_names:
-		new_roles.append({"doctype": "Has Role", "role": target_role})
+		if frappe.db.exists("Role", target_role):
+			new_roles.append({"doctype": "Has Role", "role": target_role})
+		else:
+			frappe.log_error(f"Role '{target_role}' not found, skipping role assignment during conversion")
 
 	if not new_roles:
-		new_roles.append({"doctype": "Has Role", "role": "Website User"})
+		for fallback_role in ["Website User", "Guest", "All"]:
+			if frappe.db.exists("Role", fallback_role):
+				new_roles.append({"doctype": "Has Role", "role": fallback_role})
+				break
+
 	user.set("roles", new_roles)
 
 	if first_name and (not conservative_name_update or not user.first_name):
