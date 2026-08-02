@@ -32,7 +32,10 @@
         "access_token_expiry_seconds",
         "refresh_token_expiry_days",
         "ghost_token_scope",
-        "invalidate_ghost_tokens_on_conversion"
+        "invalidate_ghost_tokens_on_conversion",
+        "tab_analytics",
+        "enable_conversion_logging",
+        "conversion_log_retention_days"
     ],
     "fields": [
         {
@@ -234,11 +237,31 @@
             "fieldname": "oauth_token_settings_tab",
             "fieldtype": "Tab Break",
             "label": "OAuth Token Settings"
+        },
+        {
+            "fieldname": "tab_analytics",
+            "fieldtype": "Tab Break",
+            "label": "Analytics"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, every successful ghost conversion is recorded in the Ghost Conversion Log for analytics.",
+            "fieldname": "enable_conversion_logging",
+            "fieldtype": "Check",
+            "label": "Enable Conversion Logging"
+        },
+        {
+            "default": "90",
+            "depends_on": "eval:doc.enable_conversion_logging==1",
+            "description": "Conversion log entries older than this many days are deleted by the daily cleanup task.",
+            "fieldname": "conversion_log_retention_days",
+            "fieldtype": "Int",
+            "label": "Conversion Log Retention (Days)"
         }
     ],
     "issingle": 1,
     "links": [],
-    "modified": "2026-02-23 15:58:00.000000",
+    "modified": "2026-08-02 17:45:00.000000",
     "modified_by": "Administrator",
     "module": "Ghost",
     "name": "Ghost Settings",

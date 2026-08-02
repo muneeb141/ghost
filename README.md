@@ -154,8 +154,25 @@ We've included a **Bruno collection** with ready-to-run API tests:
 | Access Token Expiry | How long before re-auth | 1 hour |
 | Invalidate on Conversion | Revoke ghost tokens when converting | ✓ |
 | Verify OTP on Conversion | Require email verification | ✓ |
+| Enable Conversion Logging | Record every conversion for analytics | Disabled |
+| Conversion Log Retention | Days to keep conversion logs | 90 days |
 
 **That's it!** Everything else has smart defaults.
+
+---
+
+## 📈 Conversion Analytics
+
+Ghost ships with a built-in **Ghost Analytics** desk page (System Manager only) that shows:
+
+- Total ghost sessions and total conversions
+- Conversion rate % and average conversion time
+- Conversions by mode (`rename`, `manual_migration`, `already_converted`)
+- Daily sessions vs. conversions for the last 30 days
+
+**To start collecting data**, enable **Enable Conversion Logging** in Ghost Settings > Analytics. Every successful conversion is then recorded in the **Ghost Conversion Log** doctype (with duration and client User-Agent). Logging failures never break the conversion flow.
+
+A daily scheduled task (`delete_old_conversion_logs`) automatically deletes log entries older than the configured retention (default 90 days).
 
 ---
 

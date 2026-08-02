@@ -161,7 +161,8 @@ after_migrate = "ghost.patches.v1_0.set_ghost_settings_defaults.execute"
 # ---------------
 scheduler_events = {
 	"daily": [
-		"ghost.tasks.delete_expired_ghost_users"
+		"ghost.tasks.delete_expired_ghost_users",
+		"ghost.tasks.delete_old_conversion_logs"
 	],
 	"cron": {
 		"*/10 * * * *": [
