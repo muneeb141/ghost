@@ -241,11 +241,17 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		})
 
 	if getattr(settings, "enable_lead_capture", 0):
-		frappe.db.sql("""
-			UPDATE `tabGhost Lead` 
-			SET status = 'Converted' 
-			WHERE ghost_email IN (%s, %s)
-		""", (ghost_email, real_email))
+		lead_dt = settings.lead_doctype or "Ghost Lead"
+		status_field = settings.lead_status_fieldname or "status"
+		converted_status = settings.lead_converted_status or "Converted"
+		ghost_field = settings.lead_ghost_fieldname or "ghost_email"
+		
+		if status_field:
+			frappe.db.sql(f"""
+				UPDATE `tab{lead_dt}` 
+				SET `{status_field}` = %s 
+				WHERE `{ghost_field}` IN (%s, %s)
+			""", (converted_status, ghost_email, real_email))
 
 	if getattr(settings, "enable_multi_device_merge", 0):
 		from ghost.api.merge import find_related_ghosts, merge_all_ghosts

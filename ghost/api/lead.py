@@ -17,20 +17,27 @@ def capture_email(ghost_email, email):
     if not frappe.db.exists("User", ghost_email):
         frappe.throw(_("Invalid Ghost User"))
         
+    # Get dynamic mapping config
+    lead_dt = settings.lead_doctype or "Ghost Lead"
+    email_field = settings.lead_email_fieldname or "captured_email"
+    ghost_field = settings.lead_ghost_fieldname or "ghost_email"
+    status_field = settings.lead_status_fieldname or "status"
+    captured_status = settings.lead_captured_status or "Captured"
+    
     # Check if this ghost user already captured an email
-    existing_lead = frappe.db.get_value("Ghost Lead", {"ghost_email": ghost_email}, "name")
+    existing_lead = frappe.db.get_value(lead_dt, {ghost_field: ghost_email}, "name")
     if existing_lead:
         # Update the captured email if it changed
-        frappe.db.set_value("Ghost Lead", existing_lead, "captured_email", email)
+        frappe.db.set_value(lead_dt, existing_lead, email_field, email)
         return {"status": "success", "message": _("Lead updated successfully")}
         
     # Create new lead
-    lead = frappe.get_doc({
-        "doctype": "Ghost Lead",
-        "ghost_email": ghost_email,
-        "captured_email": email,
-        "status": "Captured"
-    })
+    lead = frappe.new_doc(lead_dt)
+    lead.set(ghost_field, ghost_email)
+    lead.set(email_field, email)
+    if status_field:
+        lead.set(status_field, captured_status)
+        
     lead.insert(ignore_permissions=True)
     
     return {"status": "success", "message": _("Lead captured successfully")}

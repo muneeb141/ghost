@@ -22,8 +22,8 @@
 | 2 | Event Webhooks | Phase 1 | 🟢 Completed | `feat/event-webhooks` | — |
 | 3 | Magic Link Conversions | Phase 1 | 🟢 Completed | `feat/magic-link` | — |
 | 4 | Social Login (Google) | Phase 2 | 🟢 Completed | `feat/social-login` | — |
-| 5 | Soft Lead Capture | Phase 2 | 🟢 Completed | `feat/soft-lead-capture` | — |
-| 6 | Multi-Device Ghost Merging | Phase 2 | 🟢 Completed | `feat/multi-device-merge` | — |
+| 5 | Soft Lead Capture | Phase 2 | 🟢 Completed | `feat/lead-capture-and-merge` | — |
+| 6 | Multi-Device Ghost Merging | Phase 2 | 🟢 Completed | `feat/lead-capture-and-merge` | — |
 | 7 | Conversion Funnel API | Phase 3 | 🔴 Not Started | `feat/conversion-funnel-api` | — |
 | 8 | Bulk Ghost Cleanup | Phase 3 | 🔴 Not Started | `feat/bulk-ghost-cleanup` | — |
 | 9 | Ghost Session Fingerprinting | Phase 3 | 🔴 Not Started | `feat/session-fingerprinting` | — |

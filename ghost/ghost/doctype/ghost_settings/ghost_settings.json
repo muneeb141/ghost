@@ -35,6 +35,12 @@
         "invalidate_ghost_tokens_on_conversion",
         "tab_break_lead_capture",
         "enable_lead_capture",
+        "lead_doctype",
+        "lead_email_fieldname",
+        "lead_ghost_fieldname",
+        "lead_status_fieldname",
+        "lead_captured_status",
+        "lead_converted_status",
         "lead_reminder_hours",
         "lead_reminder_email_template",
         "section_break_merging",
@@ -253,6 +259,49 @@
             "fieldname": "enable_lead_capture",
             "fieldtype": "Check",
             "label": "Enable Lead Capture"
+        },
+        {
+            "default": "Ghost Lead",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_doctype",
+            "fieldtype": "Link",
+            "label": "Lead DocType",
+            "options": "DocType"
+        },
+        {
+            "default": "captured_email",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_email_fieldname",
+            "fieldtype": "Data",
+            "label": "Email Fieldname"
+        },
+        {
+            "default": "ghost_email",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_ghost_fieldname",
+            "fieldtype": "Data",
+            "label": "Ghost Identifier Fieldname"
+        },
+        {
+            "default": "status",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_status_fieldname",
+            "fieldtype": "Data",
+            "label": "Status Fieldname"
+        },
+        {
+            "default": "Captured",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_captured_status",
+            "fieldtype": "Data",
+            "label": "Captured Status Value"
+        },
+        {
+            "default": "Converted",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_converted_status",
+            "fieldtype": "Data",
+            "label": "Converted Status Value"
         },
         {
             "default": "24",

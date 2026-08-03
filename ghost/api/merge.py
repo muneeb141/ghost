@@ -9,15 +9,17 @@ def find_related_ghosts(real_email):
     settings = frappe.get_single("Ghost Settings")
     
     if settings.merge_detection_method in ("Lead Email", "Both"):
-        # We must check if Ghost Lead exists in the db because the feature
-        # branches might be isolated and Ghost Lead might not be installed.
-        if frappe.db.exists("DocType", "Ghost Lead"):
+        lead_dt = settings.lead_doctype or "Ghost Lead"
+        email_field = settings.lead_email_fieldname or "captured_email"
+        ghost_field = settings.lead_ghost_fieldname or "ghost_email"
+        
+        if frappe.db.exists("DocType", lead_dt):
             try:
-                leads = frappe.get_all("Ghost Lead", 
-                                       filters={"captured_email": real_email}, 
-                                       fields=["ghost_email"])
+                leads = frappe.get_all(lead_dt, 
+                                       filters={email_field: real_email}, 
+                                       fields=[ghost_field])
                 for lead in leads:
-                    ghosts.add(lead.ghost_email)
+                    ghosts.add(lead.get(ghost_field))
             except Exception as e:
                 frappe.log_error(f"Failed to find related ghosts via Lead Email: {e}", "Ghost Merge")
                 
