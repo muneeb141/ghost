@@ -1,0 +1,21 @@
+meta {
+  name: Capture Lead Email
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.lead.capture_email
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "lead_test@example.com"
+  }
+}
+
+headers {
+  Authorization: Bearer {{ghost_access_token}}
+}

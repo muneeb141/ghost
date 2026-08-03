@@ -1,0 +1,22 @@
+meta {
+  name: Social Login (Google)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.ghost.convert_via_social_login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "provider": "google",
+    "token": "YOUR_GOOGLE_ID_TOKEN"
+  }
+}
+
+headers {
+  Authorization: Bearer {{ghost_access_token}}
+}
