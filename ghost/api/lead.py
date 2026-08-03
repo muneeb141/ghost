@@ -1,8 +1,8 @@
 import frappe
 from frappe import _
 
-@frappe.whitelist(allow_guest=True)
-def capture_email(ghost_email, email):
+@frappe.whitelist()
+def capture_email(email, ghost_email=None):
     """
     Capture a ghost user's email before full conversion.
     Allows for abandoned session recovery.
@@ -11,7 +11,10 @@ def capture_email(ghost_email, email):
     if not settings.enable_lead_capture:
         frappe.throw(_("Lead Capture is not enabled"), frappe.PermissionError)
         
-    if not ghost_email or not email:
+    if not ghost_email:
+        ghost_email = frappe.session.user
+        
+    if not ghost_email or ghost_email == "Guest" or not email:
         frappe.throw(_("Both ghost_email and email are required"))
         
     if not frappe.db.exists("User", ghost_email):
