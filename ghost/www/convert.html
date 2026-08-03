@@ -2,23 +2,74 @@
 
 {% block page_content %}
 <div class="container text-center mt-5 pt-5">
-    {% if success %}
-        <div class="alert alert-success">
-            <h3>{{ _("Account Activated!") }}</h3>
-            <p>{{ _("Your account has been successfully verified and converted.") }}</p>
-            {% if response and response.user %}
-                <p>Welcome, {{ response.user }}!</p>
-            {% endif %}
-            <p><a href="/" class="btn btn-primary mt-3">{{ _("Go to Homepage") }}</a></p>
+    {% if is_valid %}
+        <div id="confirm-view">
+            <h3>{{ _("Verify Your Email") }}</h3>
+            <p>{{ _("Click the button below to securely verify your email and convert your account.") }}</p>
+            <button id="btn-confirm" class="btn btn-primary mt-3">{{ _("Verify & Convert") }}</button>
+            <p id="error-msg" class="text-danger mt-3" style="display: none;"></p>
         </div>
-        <!-- If we didn't redirect via python, and we need to pass tokens to frontend, we can do it here -->
+        
+        <div id="success-view" style="display: none;">
+            <div class="alert alert-success">
+                <h3>{{ _("Account Activated!") }}</h3>
+                <p>{{ _("Your account has been successfully verified and converted.") }}</p>
+                <p id="welcome-msg"></p>
+                <p><a href="/" class="btn btn-primary mt-3">{{ _("Go to Homepage") }}</a></p>
+            </div>
+        </div>
+
         <script>
-            // Store tokens in localStorage if they were returned
-            const response = {{ response | tojson }};
-            if (response && response.access_token) {
-                localStorage.setItem("access_token", response.access_token);
-                localStorage.setItem("refresh_token", response.refresh_token);
-            }
+            document.getElementById('btn-confirm').addEventListener('click', async function() {
+                const btn = this;
+                btn.disabled = true;
+                btn.textContent = 'Verifying...';
+                
+                try {
+                    const response = await fetch('/api/method/ghost.api.magic_link.consume_magic_link', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Frappe-CSRF-Token': frappe.csrf_token || ''
+                        },
+                        body: JSON.stringify({ token: "{{ token }}" })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.message && data.message.redirect_url) {
+                        // Store tokens in local storage if present
+                        if (data.message.access_token) {
+                            localStorage.setItem("access_token", data.message.access_token);
+                            localStorage.setItem("refresh_token", data.message.refresh_token);
+                        }
+                        window.location.href = data.message.redirect_url;
+                        return;
+                    }
+                    
+                    if (data.message && data.message.status !== 'error') {
+                        document.getElementById('confirm-view').style.display = 'none';
+                        document.getElementById('success-view').style.display = 'block';
+                        
+                        if (data.message.user) {
+                            document.getElementById('welcome-msg').textContent = 'Welcome, ' + data.message.user + '!';
+                        }
+                        
+                        if (data.message.access_token) {
+                            localStorage.setItem("access_token", data.message.access_token);
+                            localStorage.setItem("refresh_token", data.message.refresh_token);
+                        }
+                    } else {
+                        throw new Error(data.message?.error || data._server_messages || "Unknown error");
+                    }
+                } catch (e) {
+                    btn.disabled = false;
+                    btn.textContent = '{{ _("Verify & Convert") }}';
+                    const errMsg = document.getElementById('error-msg');
+                    errMsg.textContent = e.message;
+                    errMsg.style.display = 'block';
+                }
+            });
         </script>
     {% else %}
         <div class="alert alert-danger">

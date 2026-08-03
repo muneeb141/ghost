@@ -79,3 +79,41 @@ def send_magic_link(ghost_email, real_email):
         "message": _("Magic link generated successfully"),
         "dev_magic_link": magic_link_url
     }
+
+@frappe.whitelist(allow_guest=True)
+def consume_magic_link(token):
+    """Consumes a magic link token and converts the user."""
+    settings = frappe.get_single("Ghost Settings")
+    if not settings.enable_magic_link:
+        frappe.throw(_("Magic Link feature is disabled."))
+
+    token_doc_name = frappe.db.get_value(
+        "Ghost Magic Link Token",
+        {"token": token, "status": "Pending"},
+        "name"
+    )
+
+    if not token_doc_name:
+        frappe.throw(_("Invalid or already used token."))
+
+    token_doc = frappe.get_doc("Ghost Magic Link Token", token_doc_name)
+
+    if token_doc.expires_on < now_datetime():
+        token_doc.db_set("status", "Expired")
+        frappe.throw(_("This magic link has expired."))
+
+    from ghost.api.ghost import convert_to_real_user
+    
+    # Mark used
+    token_doc.db_set("status", "Used")
+    
+    response = convert_to_real_user(
+        ghost_email=token_doc.ghost_email,
+        real_email=token_doc.real_email,
+        bypass_otp=True
+    )
+    
+    if settings.magic_link_redirect_url:
+        response["redirect_url"] = f"{settings.magic_link_redirect_url}#access_token={response.get('access_token', '')}&refresh_token={response.get('refresh_token', '')}"
+        
+    return response
