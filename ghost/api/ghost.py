@@ -32,7 +32,7 @@ _GHOST_CHILD_TABLES = [
 
 @frappe.whitelist(allow_guest=True)
 @frappe.rate_limiter.rate_limit(limit=100, seconds=3600)
-def create_ghost_session(email=None):
+def create_ghost_session(email=None, fingerprint=None):
 	"""
 	Creates a Ghost User and returns their API Key/Secret + Session details.
 	"""
@@ -43,18 +43,38 @@ def create_ghost_session(email=None):
 	ghost_role = settings.ghost_role or "Guest"
 	domain = settings.ghost_email_domain or "guest.local"
 
-	# Generate Email
+	# Fingerprint matching logic
+	if settings.enable_fingerprinting and fingerprint:
+		expiry_days = settings.fingerprint_expiry_days or 7
+		from frappe.utils import add_days
+		cutoff_date = add_days(now_datetime(), -expiry_days)
+		
+		# Find unexpired fingerprint
+		existing_fp = frappe.db.get_value("Ghost Fingerprint", 
+			{"fingerprint": fingerprint, "last_seen": [">", cutoff_date]}, 
+			["name", "ghost_email"], as_dict=True)
+			
+		if existing_fp and frappe.db.exists("User", existing_fp.ghost_email):
+			# Found a valid matching ghost user!
+			email = existing_fp.ghost_email
+			# Update last seen
+			frappe.db.set_value("Ghost Fingerprint", existing_fp.name, "last_seen", now_datetime())
+			
+			from ghost.api.auth import generate_oauth_tokens
+			tokens = generate_oauth_tokens(email)
+			return {
+				"user": email,
+				"access_token": tokens["access_token"],
+				"refresh_token": tokens["refresh_token"],
+				"expires_in": tokens["expires_in"],
+				"token_type": tokens["token_type"],
+				"message": "Reconnected to existing Ghost session"
+			}
+
+	# Generate Email if not matching/provided
 	if not email:
 		unique_id = str(uuid.uuid4())[:8]
 		email = f"ghost_{unique_id}@{domain}"
-	else:
-		# If email provided, ensure it's not taken, or return existing ghost?
-		# For safety, we enforce generated emails for now unless specified.
-		pass
-
-	if frappe.db.exists("User", email):
-		# Re-use? Or error? For now, assume new session needed.
-		pass
 
 	# Create User
 	user = frappe.new_doc("User")
@@ -73,6 +93,22 @@ def create_ghost_session(email=None):
 	if ghost_role not in [r.role for r in user.roles]:
 		user.add_roles(ghost_role)
 		user.save(ignore_permissions=True)
+
+	# Save Fingerprint if provided and enabled
+	if settings.enable_fingerprinting and fingerprint:
+		fp_name = frappe.db.exists("Ghost Fingerprint", {"fingerprint": fingerprint})
+		if fp_name:
+			frappe.db.set_value("Ghost Fingerprint", fp_name, {
+				"ghost_email": email,
+				"last_seen": now_datetime()
+			})
+		else:
+			frappe.get_doc({
+				"doctype": "Ghost Fingerprint",
+				"fingerprint": fingerprint,
+				"ghost_email": email,
+				"last_seen": now_datetime()
+			}).insert(ignore_permissions=True)
 
 	# Generate OAuth Bearer Tokens instead of API keys
 	from ghost.api.auth import generate_oauth_tokens

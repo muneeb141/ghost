@@ -763,6 +763,23 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
         }
 
         // ─── Step 1: Create Ghost Session ────────────────────
+        // Generate a simulated device fingerprint for the demo
+        function getDeviceFingerprint() {
+            let fp = localStorage.getItem('ghost_demo_fingerprint');
+            if (!fp) {
+                // A simple hash of user agent + screen resolution as a mock fingerprint
+                const raw = navigator.userAgent + screen.width + 'x' + screen.height;
+                let hash = 0;
+                for (let i = 0; i < raw.length; i++) {
+                    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+                    hash |= 0;
+                }
+                fp = 'demo_fp_' + Math.abs(hash).toString(16);
+                localStorage.setItem('ghost_demo_fingerprint', fp);
+            }
+            return fp;
+        }
+
         async function createSession() {
             const btn = document.getElementById('btn-session');
             btn.disabled = true;
@@ -771,7 +788,8 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
             showResponse('resp-1', 'status-1', 'body-1', 'loading', null);
 
             try {
-                const json = await apiCall('/api/method/ghost.api.ghost.create_ghost_session');
+                const fp = getDeviceFingerprint();
+                const json = await apiCall('/api/method/ghost.api.ghost.create_ghost_session', { fingerprint: fp });
                 const msg = json.message || json;
 
                 if (msg.access_token) {
