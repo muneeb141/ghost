@@ -1,0 +1,31 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="container text-center mt-5 pt-5">
+    {% if success %}
+        <div class="alert alert-success">
+            <h3>{{ _("Account Activated!") }}</h3>
+            <p>{{ _("Your account has been successfully verified and converted.") }}</p>
+            {% if response and response.user %}
+                <p>Welcome, {{ response.user }}!</p>
+            {% endif %}
+            <p><a href="/" class="btn btn-primary mt-3">{{ _("Go to Homepage") }}</a></p>
+        </div>
+        <!-- If we didn't redirect via python, and we need to pass tokens to frontend, we can do it here -->
+        <script>
+            // Store tokens in localStorage if they were returned
+            const response = {{ response | tojson }};
+            if (response && response.access_token) {
+                localStorage.setItem("access_token", response.access_token);
+                localStorage.setItem("refresh_token", response.refresh_token);
+            }
+        </script>
+    {% else %}
+        <div class="alert alert-danger">
+            <h3>{{ _("Magic Link Failed") }}</h3>
+            <p>{{ error_message or _("The link is invalid or has expired.") }}</p>
+            <p><a href="/login" class="btn btn-secondary mt-3">{{ _("Back to Login") }}</a></p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
