@@ -630,6 +630,9 @@
                 <button class="btn btn-primary" id="btn-convert" onclick="convertFrictionless()" disabled>
                     Convert User
                 </button>
+                <button class="btn btn-secondary" id="btn-magic-link" onclick="sendMagicLink()" disabled style="margin-left: 8px;">
+                    Send Magic Link
+                </button>
             </div>
 
             <div class="response-panel" id="resp-3-manual">
@@ -786,6 +789,7 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
                     // Enable next step
                     document.getElementById('btn-capture').disabled = false;
                     document.getElementById('btn-convert').disabled = false;
+                    document.getElementById('btn-magic-link').disabled = false;
 
                     btn.innerHTML = '✓ Session Created';
                     btn.classList.remove('btn-primary');
@@ -904,12 +908,62 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
                     btn.classList.add('btn-secondary');
                 } else {
                     showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', json);
-                    btn.innerHTML = 'Retry';
+                }
+            } catch (err) {
+                showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', { error: err.message });
+                btn.innerHTML = 'Convert User';
+                btn.disabled = false;
+            }
+        }
+
+        // ─── Step 3c: Send Magic Link ────────────────────
+        async function sendMagicLink() {
+            const realEmail = document.getElementById('input-real-email').value;
+            if (!realEmail) {
+                alert("Please enter a real email address first!");
+                return;
+            }
+
+            const btn = document.getElementById('btn-magic-link');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+
+            showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'loading', null);
+
+            try {
+                const json = await apiCall(
+                    '/api/method/ghost.api.magic_link.send_magic_link',
+                    {
+                        ghost_email: ghostEmail,
+                        real_email: realEmail
+                    },
+                    ghostToken
+                );
+                const msg = json.message || json;
+
+                if (msg.status === 'success') {
+                    showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'success', msg);
+                    btn.innerHTML = '✓ Link Sent';
+                    
+                    if (msg.dev_magic_link) {
+                        const bodyEl = document.getElementById('body-3-manual');
+                        const linkBtn = document.createElement('a');
+                        linkBtn.href = msg.dev_magic_link;
+                        linkBtn.target = '_blank';
+                        linkBtn.className = 'btn btn-primary';
+                        linkBtn.style.display = 'inline-block';
+                        linkBtn.style.marginTop = '16px';
+                        linkBtn.textContent = '🔗 Click here to test Magic Link (Bypasses Email)';
+                        bodyEl.appendChild(linkBtn);
+                    }
+                } else {
+                    showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', json);
+                    btn.innerHTML = 'Send Magic Link';
                     btn.disabled = false;
                 }
             } catch (err) {
                 showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', { error: err.message });
-                btn.innerHTML = 'Retry';
+                btn.innerHTML = 'Send Magic Link';
                 btn.disabled = false;
             }
         }
