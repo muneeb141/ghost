@@ -630,6 +630,9 @@
                 <button class="btn btn-primary" id="btn-convert" onclick="convertFrictionless()" disabled>
                     Convert User
                 </button>
+                <button class="btn btn-secondary" id="btn-magic-link" onclick="sendMagicLink()" disabled style="margin-left: 8px;">
+                    Send Magic Link
+                </button>
             </div>
 
             <div class="response-panel" id="resp-3-manual">
@@ -647,6 +650,58 @@
                     (e.g. <code>https://my-ghost-app.com</code>) is added to the 
                     <strong>Authorized JavaScript origins</strong> in your Google Cloud Console credentials page.
                 </span>
+            </div>
+        </div>
+
+        <div class="flow-line"></div>
+
+        <!-- Bonus: Webhooks -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number" style="background: var(--success-bg); color: var(--success); border-color: rgba(34, 197, 94, 0.2);">
+                    <span style="font-size: 16px;">⚡</span>
+                </div>
+                <div class="step-title">Event Webhooks (Behind the Scenes)</div>
+            </div>
+            <div class="step-desc">
+                When a Ghost User converts, the backend instantly dispatches a secure webhook to your configured integrations (like Zapier, Make.com, or HubSpot). This happens strictly Server-to-Server.
+            </div>
+            
+            <div class="info-banner info" style="display: block;">
+                <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px;">
+                    <span class="icon">💡</span>
+                    <span>
+                        <strong>How to test:</strong> Go to <strong>Ghost Settings &gt; Integrations</strong>, enable Webhooks, and set the URL to <code>http://localhost:9001</code>. Run the local python listener below, trigger a conversion, and watch the JSON payload arrive instantly!
+                    </span>
+                </div>
+                <details style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-left: 25px;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 13px; color: #93c5fd; user-select: none;">Show test_webhook.py script</summary>
+                    <pre style="margin-top: 12px; margin-bottom: 0; font-family: 'SF Mono', monospace; font-size: 11.5px; color: #a78bfa; overflow-x: auto;">
+import http.server, json
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get('Content-Length', 0))
+        print(json.dumps(json.loads(self.rfile.read(length)), indent=2))
+        self.send_response(200); self.end_headers()
+
+print("Listening on port 9001...")
+http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
+                </details>
+            </div>
+
+            <div class="response-panel visible" style="margin-top: 16px;">
+                <div class="response-bar">
+                    <span class="label">Sample Webhook Payload</span>
+                    <span class="status-badge success">HMAC-SHA256 Signed</span>
+                </div>
+                <div class="response-body">{
+  <span class="key">"event"</span>: <span class="string">"ghost_converted"</span>,
+  <span class="key">"ghost_email"</span>: <span class="string">"ghost_a7b8c9d0@guest.local"</span>,
+  <span class="key">"real_email"</span>: <span class="string">"john.doe@example.com"</span>,
+  <span class="key">"conversion_mode"</span>: <span class="string">"rename"</span>,
+  <span class="key">"timestamp"</span>: <span class="string">"2026-08-03 14:30:00.123456"</span>
+}</div>
             </div>
         </div>
 
@@ -734,6 +789,7 @@
                     // Enable next step
                     document.getElementById('btn-capture').disabled = false;
                     document.getElementById('btn-convert').disabled = false;
+                    document.getElementById('btn-magic-link').disabled = false;
 
                     btn.innerHTML = '✓ Session Created';
                     btn.classList.remove('btn-primary');
@@ -852,12 +908,62 @@
                     btn.classList.add('btn-secondary');
                 } else {
                     showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', json);
-                    btn.innerHTML = 'Retry';
+                }
+            } catch (err) {
+                showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', { error: err.message });
+                btn.innerHTML = 'Convert User';
+                btn.disabled = false;
+            }
+        }
+
+        // ─── Step 3c: Send Magic Link ────────────────────
+        async function sendMagicLink() {
+            const realEmail = document.getElementById('input-real-email').value;
+            if (!realEmail) {
+                alert("Please enter a real email address first!");
+                return;
+            }
+
+            const btn = document.getElementById('btn-magic-link');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+
+            showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'loading', null);
+
+            try {
+                const json = await apiCall(
+                    '/api/method/ghost.api.magic_link.send_magic_link',
+                    {
+                        ghost_email: ghostEmail,
+                        real_email: realEmail
+                    },
+                    ghostToken
+                );
+                const msg = json.message || json;
+
+                if (msg.status === 'success') {
+                    showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'success', msg);
+                    btn.innerHTML = '✓ Link Sent';
+                    
+                    if (msg.dev_magic_link) {
+                        const bodyEl = document.getElementById('body-3-manual');
+                        const linkBtn = document.createElement('a');
+                        linkBtn.href = msg.dev_magic_link;
+                        linkBtn.target = '_blank';
+                        linkBtn.className = 'btn btn-primary';
+                        linkBtn.style.display = 'inline-block';
+                        linkBtn.style.marginTop = '16px';
+                        linkBtn.textContent = '🔗 Click here to test Magic Link (Bypasses Email)';
+                        bodyEl.appendChild(linkBtn);
+                    }
+                } else {
+                    showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', json);
+                    btn.innerHTML = 'Send Magic Link';
                     btn.disabled = false;
                 }
             } catch (err) {
                 showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', { error: err.message });
-                btn.innerHTML = 'Retry';
+                btn.innerHTML = 'Send Magic Link';
                 btn.disabled = false;
             }
         }

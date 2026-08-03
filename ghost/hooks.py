@@ -154,6 +154,14 @@ after_migrate = "ghost.patches.v1_0.set_ghost_settings_defaults.execute"
 # 	}
 # }
 
+# Conversion Events
+# -----------------
+# Other Frappe apps can append dotted handler paths here to be notified when a
+# ghost user converts. Each handler is called with ghost_email, real_email,
+# and conversion_mode. Requires "Enable Webhooks" in Ghost Settings.
+
+ghost_conversion_hooks = []
+
 # Scheduled Tasks
 # ---------------
 
@@ -161,7 +169,8 @@ after_migrate = "ghost.patches.v1_0.set_ghost_settings_defaults.execute"
 # ---------------
 scheduler_events = {
 	"daily": [
-		"ghost.tasks.delete_expired_ghost_users"
+		"ghost.tasks.delete_expired_ghost_users",
+		"ghost.tasks.delete_old_conversion_logs"
 	],
 	"hourly": [
 		"ghost.tasks.send_lead_reminders"
@@ -254,4 +263,19 @@ scheduler_events = {
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
+
+fixtures = [
+    {
+        "dt": "Email Template",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Ghost Magic Link"
+                ]
+            ]
+        ]
+    }
+]
 

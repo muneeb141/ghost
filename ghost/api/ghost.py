@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import random_string, get_url
+from frappe.utils import random_string, get_url, now_datetime
 from frappe.utils.password import rename_password
 import uuid
 import time
@@ -135,6 +135,10 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 					"expires_in": retry_tokens["expires_in"],
 					"token_type": retry_tokens["token_type"],
 				})
+			_log_conversion(settings, ghost_email, real_email, "already_converted", total_start)
+			if settings.enable_webhooks:
+				from ghost.events import on_ghost_converted
+				on_ghost_converted(ghost_email, real_email, "already_converted", retry_tokens)
 			return retry_response
 		frappe.throw(_("Ghost user {} does not exist").format(ghost_email))
 
@@ -265,11 +269,16 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 				response["merged_ghosts"] = related
 				response["merged_count"] = merged_count
 
+	_log_conversion(settings, ghost_email, real_email, conversion_mode, total_start)
+
 	frappe.db.commit()
 	logger.info(
 		f"Ghost conversion total duration_ms={(time.monotonic() - total_start) * 1000:.2f} "
 		f"ghost={ghost_email} real={real_email} mode={conversion_mode}"
 	)
+	if settings.enable_webhooks:
+		from ghost.events import on_ghost_converted
+		on_ghost_converted(ghost_email, real_email, conversion_mode, new_tokens)
 	return response
 
 
@@ -378,3 +387,33 @@ def apply_user_profile_and_roles(user, settings, first_name=None, last_name=None
 		user.first_name = first_name
 	if last_name and (not conservative_name_update or not user.last_name or user.last_name == "User"):
 		user.last_name = last_name
+
+
+def _log_conversion(settings, ghost_email, real_email, conversion_mode, total_start):
+	"""Record a successful conversion in Ghost Conversion Log.
+
+	Controlled by the enable_conversion_logging toggle in Ghost Settings.
+	Must never break the conversion flow — any failure is logged and swallowed.
+	"""
+	if not getattr(settings, "enable_conversion_logging", 0):
+		return
+	try:
+		client_info = None
+		try:
+			if frappe.request and frappe.request.headers:
+				client_info = frappe.request.headers.get("User-Agent")
+		except Exception:
+			# No request context (tests, background jobs) — client info stays empty.
+			pass
+
+		frappe.get_doc({
+			"doctype": "Ghost Conversion Log",
+			"ghost_email": ghost_email,
+			"real_email": real_email,
+			"conversion_mode": conversion_mode,
+			"conversion_duration_ms": (time.monotonic() - total_start) * 1000,
+			"converted_at": now_datetime(),
+			"client_info": client_info,
+		}).insert(ignore_permissions=True)
+	except Exception as e:
+		frappe.log_error(f"Failed to log ghost conversion {ghost_email} -> {real_email}: {str(e)}")

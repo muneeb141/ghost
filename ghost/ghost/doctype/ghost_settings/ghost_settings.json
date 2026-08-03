@@ -9,6 +9,7 @@
         "enable_auto_cleanup",
         "ghost_role",
         "ghost_email_domain",
+        "column_break_ghost_identity",
         "expiration_days",
         "default_user_role",
         "client_id",
@@ -17,11 +18,17 @@
         "section_break_social_login",
         "enable_social_login",
         "google_client_id",
+        "section_break_magic_link",
+        "enable_magic_link",
+        "magic_link_expiry_minutes",
+        "magic_link_redirect_url",
+        "magic_link_email_template",
         "tab_otp",
         "expiry_time_minutes",
         "allow_anonymous_otp",
         "sandbox_mode",
         "sandbox_otp",
+        "column_break_otp",
         "max_otp_attempts",
         "otp_length",
         "otp_code_type",
@@ -41,6 +48,7 @@
         "lead_doctype",
         "lead_email_fieldname",
         "lead_ghost_fieldname",
+        "column_break_lead",
         "lead_status_fieldname",
         "lead_captured_status",
         "lead_converted_status",
@@ -48,7 +56,19 @@
         "lead_reminder_email_template",
         "section_break_merging",
         "enable_multi_device_merge",
-        "merge_detection_method"
+        "merge_detection_method",
+        "tab_analytics",
+        "enable_conversion_logging",
+        "conversion_log_retention_days",
+        "tab_integrations",
+        "section_break_webhooks",
+        "enable_webhooks",
+        "webhook_url",
+        "webhook_secret",
+        "enable_realtime_events",
+        "tab_magic_link_ui",
+        "magic_link_html",
+        "magic_link_css"
     ],
     "fields": [
         {
@@ -163,6 +183,62 @@
             "fieldname": "google_client_id",
             "fieldtype": "Data",
             "label": "Google Client ID"
+        },
+        {
+            "fieldname": "section_break_magic_link",
+            "fieldtype": "Section Break",
+            "label": "Magic Link"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, users can receive an email with a clickable link to convert their session.",
+            "fieldname": "enable_magic_link",
+            "fieldtype": "Check",
+            "label": "Enable Magic Link"
+        },
+        {
+            "default": "30",
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "How long the magic link remains valid in minutes.",
+            "fieldname": "magic_link_expiry_minutes",
+            "fieldtype": "Int",
+            "label": "Magic Link Expiry (Minutes)"
+        },
+        {
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "URL to redirect to after successful conversion (e.g., /dashboard).",
+            "fieldname": "magic_link_redirect_url",
+            "fieldtype": "Data",
+            "label": "Magic Link Redirect URL"
+        },
+        {
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "Email Template containing the {{ magic_link }} variable.",
+            "fieldname": "magic_link_email_template",
+            "fieldtype": "Link",
+            "label": "Magic Link Email Template",
+            "options": "Email Template"
+        },
+        {
+            "fieldname": "tab_magic_link_ui",
+            "fieldtype": "Tab Break",
+            "label": "Magic Link UI"
+        },
+        {
+            "description": "Custom HTML to completely override the default Magic Link conversion page UI. You can use Jinja variables like {{ magic_link }} or {{ error_message }} here.",
+            "fieldname": "magic_link_html",
+            "fieldtype": "Code",
+            "label": "Custom HTML",
+            "options": "HTML",
+            "default": ""
+        },
+        {
+            "description": "Custom CSS to inject into the Magic Link conversion page.",
+            "fieldname": "magic_link_css",
+            "fieldtype": "Code",
+            "label": "Custom CSS",
+            "options": "CSS",
+            "default": "{{ settings.magic_link_css }}"
         },
         {
             "fieldname": "tab_otp",
@@ -363,11 +439,82 @@
             "fieldtype": "Select",
             "label": "Merge Detection Method",
             "options": "Lead Email\nFingerprint\nBoth"
+        },
+        {
+            "fieldname": "tab_analytics",
+            "fieldtype": "Tab Break",
+            "label": "Analytics"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, every successful ghost conversion is recorded in the Ghost Conversion Log for analytics.",
+            "fieldname": "enable_conversion_logging",
+            "fieldtype": "Check",
+            "label": "Enable Conversion Logging"
+        },
+        {
+            "default": "90",
+            "depends_on": "eval:doc.enable_conversion_logging==1",
+            "description": "Conversion log entries older than this many days are deleted by the daily cleanup task.",
+            "fieldname": "conversion_log_retention_days",
+            "fieldtype": "Int",
+            "label": "Conversion Log Retention (Days)"
+        },
+        {
+            "fieldname": "tab_integrations",
+            "fieldtype": "Tab Break",
+            "label": "Integrations"
+        },
+        {
+            "fieldname": "section_break_webhooks",
+            "fieldtype": "Section Break",
+            "label": "Webhooks & Events"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, a signed webhook is POSTed and Frappe hooks are fired on every successful ghost conversion.",
+            "fieldname": "enable_webhooks",
+            "fieldtype": "Check",
+            "label": "Enable Webhooks"
+        },
+        {
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "URL to POST conversion events to (e.g., your CRM or Zapier endpoint).",
+            "fieldname": "webhook_url",
+            "fieldtype": "Data",
+            "label": "Webhook URL"
+        },
+        {
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "Secret used to sign webhook payloads. Receivers verify the X-Ghost-Signature header with HMAC-SHA256.",
+            "fieldname": "webhook_secret",
+            "fieldtype": "Password",
+            "label": "Webhook Secret"
+        },
+        {
+            "default": "0",
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "If enabled, a Frappe realtime event 'ghost_converted' is published on every successful conversion.",
+            "fieldname": "enable_realtime_events",
+            "fieldtype": "Check",
+            "label": "Enable Realtime Events"
+        },
+        {
+            "fieldname": "column_break_ghost_identity",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "column_break_otp",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "column_break_lead",
+            "fieldtype": "Column Break"
         }
     ],
     "issingle": 1,
     "links": [],
-    "modified": "2026-02-23 15:58:00.000000",
+    "modified": "2026-08-02 18:15:00.000000",
     "modified_by": "Administrator",
     "module": "Ghost",
     "name": "Ghost Settings",
