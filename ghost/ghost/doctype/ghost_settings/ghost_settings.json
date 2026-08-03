@@ -7,6 +7,7 @@
         "tab_ghost",
         "enable_ghost_feature",
         "enable_auto_cleanup",
+        "cleanup_batch_size",
         "ghost_role",
         "ghost_email_domain",
         "column_break_ghost_identity",
@@ -89,6 +90,14 @@
             "fieldname": "enable_auto_cleanup",
             "fieldtype": "Check",
             "label": "Enable Auto Cleanup"
+        },
+        {
+            "default": "500",
+            "depends_on": "eval:doc.enable_auto_cleanup==1",
+            "description": "Number of ghost users to delete per batch (bulk SQL delete).",
+            "fieldname": "cleanup_batch_size",
+            "fieldtype": "Int",
+            "label": "Cleanup Batch Size"
         },
         {
             "default": "Guest",

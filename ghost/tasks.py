@@ -4,6 +4,7 @@ from frappe.utils import add_days, now_datetime
 def delete_expired_ghost_users():
 	"""
 	Deletes Ghost users that have exceeded the expiration days.
+	Optimized to use bulk SQL deletions for high performance.
 	"""
 	settings = frappe.get_single("Ghost Settings")
 	if not settings.enable_ghost_feature or not settings.enable_auto_cleanup:
@@ -13,17 +14,13 @@ def delete_expired_ghost_users():
 	# Safety check: Don't allow very short expiration by mistake, unless 0 (immediate? No, 0 usually means disable or massive bug risk).
 	if expiration_days < 1:
 		expiration_days = 1
+		
+	batch_size = getattr(settings, "cleanup_batch_size", 500)
 
 	expiry_date = add_days(now_datetime(), -expiration_days)
 	ghost_domain = settings.ghost_email_domain or "guest.local"
 
 	# Find users to delete
-	# Criteria:
-	# 1. Role contains 'Ghost' (Checked via User Role usually, but checking query is faster)
-	# 2. Email ends with ghost domain
-	# 3. Creation < expiry_date
-	# 4. Filter by specific 'Ghost' role to be safe.
-	
 	users = frappe.db.sql("""
 		SELECT name FROM `tabUser`
 		WHERE creation < %s
@@ -31,19 +28,27 @@ def delete_expired_ghost_users():
 		AND name IN (
 			SELECT parent FROM `tabHas Role` WHERE role = %s
 		)
-	""", (expiry_date, f"%@{ghost_domain}", settings.ghost_role), as_dict=True)
+		LIMIT %s
+	""", (expiry_date, f"%@{ghost_domain}", settings.ghost_role, batch_size), as_dict=True)
 
-	for u in users:
-		# Use frappe.delete_doc to ensure strict cleanup (links etc)
-		# This might be slow if there are thousands. 
-		# For extreme scalability, we might use bulk delete if no important links exist.
-		# But standard delete is safer for now.
-		try:
-			frappe.delete_doc("User", u.name, ignore_permissions=True, force=1)
-			# Commit every 100 to avoid long transaction? 
-			# frappe.db.commit() # optional, depends on volume
-		except Exception:
-			frappe.log_error(f"Failed to delete ghost user {u.name}", "Ghost Cleanup")
+	if not users:
+		return
+
+	ghost_names = tuple(u.name for u in users)
+
+	# Safety block: delete from all child tables first
+	# The syntax frappe.db.sql(..., (tuple,)) properly interpolates an IN clause.
+	
+	frappe.db.sql("DELETE FROM `tabHas Role` WHERE parent IN %s", (ghost_names,))
+	frappe.db.sql("DELETE FROM `tabUser Email` WHERE parent IN %s", (ghost_names,))
+	frappe.db.sql("DELETE FROM `tabBlock Module` WHERE parent IN %s", (ghost_names,))
+	frappe.db.sql("DELETE FROM `tabDefaultValue` WHERE parent IN %s", (ghost_names,))
+	frappe.db.sql("DELETE FROM `tabUser Social Login` WHERE parent IN %s", (ghost_names,))
+	
+	# Finally, delete from User table
+	frappe.db.sql("DELETE FROM `tabUser` WHERE name IN %s", (ghost_names,))
+	
+	frappe.db.commit()
 
 
 def expire_otps():
