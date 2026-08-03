@@ -167,7 +167,7 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		if target_exists:
 			migration_stats = migrate_ghost_data_to_existing_user(ghost_email, real_email)
 			conversion_mode = "manual_migration"
-			merged = False
+			merged = True
 		else:
 			convert_by_rename(ghost_email, real_email)
 			migration_stats = {}
@@ -374,7 +374,7 @@ def apply_user_profile_and_roles(user, settings, first_name=None, last_name=None
 
 	user.set("roles", new_roles)
 
-	if first_name and (not conservative_name_update or not user.first_name):
+	if first_name and (not conservative_name_update or not user.first_name or user.first_name == "Ghost"):
 		user.first_name = first_name
-	if last_name and (not conservative_name_update or not user.last_name):
+	if last_name and (not conservative_name_update or not user.last_name or user.last_name == "User"):
 		user.last_name = last_name
