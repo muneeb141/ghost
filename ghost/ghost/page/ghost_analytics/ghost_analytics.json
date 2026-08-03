@@ -1,0 +1,19 @@
+{
+    "creation": "2026-08-02 17:45:00.000000",
+    "docstatus": 0,
+    "doctype": "Page",
+    "idx": 0,
+    "modified": "2026-08-02 17:45:00.000000",
+    "modified_by": "Administrator",
+    "module": "Ghost",
+    "name": "ghost-analytics",
+    "owner": "Administrator",
+    "page_name": "ghost-analytics",
+    "roles": [
+        {
+            "role": "System Manager"
+        }
+    ],
+    "standard": "Yes",
+    "title": "Ghost Analytics"
+}

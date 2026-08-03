@@ -120,3 +120,19 @@ def send_lead_reminders():
 			frappe.log_error(f"Error sending lead reminder to {lead.captured_email}: {str(e)}", "Lead Reminder")
 	
 	frappe.db.commit()
+
+def delete_old_conversion_logs():
+	"""
+	Deletes Ghost Conversion Log entries older than the configured retention.
+	Skips silently when conversion logging is disabled.
+	"""
+	settings = frappe.get_single("Ghost Settings")
+	if not getattr(settings, "enable_conversion_logging", 0):
+		return
+
+	retention_days = settings.conversion_log_retention_days or 90
+	if retention_days < 1:
+		retention_days = 1
+
+	cutoff = add_days(now_datetime(), -retention_days)
+	frappe.db.delete("Ghost Conversion Log", {"converted_at": ["<", cutoff]})
