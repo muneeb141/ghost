@@ -136,6 +136,9 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 					"token_type": retry_tokens["token_type"],
 				})
 			_log_conversion(settings, ghost_email, real_email, "already_converted", total_start)
+			if settings.enable_webhooks:
+				from ghost.events import on_ghost_converted
+				on_ghost_converted(ghost_email, real_email, "already_converted", retry_tokens)
 			return retry_response
 		frappe.throw(_("Ghost user {} does not exist").format(ghost_email))
 
@@ -273,6 +276,9 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		f"Ghost conversion total duration_ms={(time.monotonic() - total_start) * 1000:.2f} "
 		f"ghost={ghost_email} real={real_email} mode={conversion_mode}"
 	)
+	if settings.enable_webhooks:
+		from ghost.events import on_ghost_converted
+		on_ghost_converted(ghost_email, real_email, conversion_mode, new_tokens)
 	return response
 
 

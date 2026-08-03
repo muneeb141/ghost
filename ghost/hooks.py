@@ -154,6 +154,14 @@ after_migrate = "ghost.patches.v1_0.set_ghost_settings_defaults.execute"
 # 	}
 # }
 
+# Conversion Events
+# -----------------
+# Other Frappe apps can append dotted handler paths here to be notified when a
+# ghost user converts. Each handler is called with ghost_email, real_email,
+# and conversion_mode. Requires "Enable Webhooks" in Ghost Settings.
+
+ghost_conversion_hooks = []
+
 # Scheduled Tasks
 # ---------------
 
