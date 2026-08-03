@@ -14,6 +14,9 @@
         "client_id",
         "section_break_conversion",
         "verify_otp_on_conversion",
+        "section_break_social_login",
+        "enable_social_login",
+        "google_client_id",
         "tab_otp",
         "expiry_time_minutes",
         "allow_anonymous_otp",
@@ -141,6 +144,25 @@
             "fieldname": "verify_otp_on_conversion",
             "fieldtype": "Check",
             "label": "Verify OTP on Conversion"
+        },
+        {
+            "fieldname": "section_break_social_login",
+            "fieldtype": "Section Break",
+            "label": "Social Login"
+        },
+        {
+            "default": "0",
+            "description": "Allow ghost users to convert via Google Sign-In.",
+            "fieldname": "enable_social_login",
+            "fieldtype": "Check",
+            "label": "Enable Social Login"
+        },
+        {
+            "depends_on": "eval:doc.enable_social_login==1",
+            "description": "Google OAuth Client ID for token verification.",
+            "fieldname": "google_client_id",
+            "fieldtype": "Data",
+            "label": "Google Client ID"
         },
         {
             "fieldname": "tab_otp",
