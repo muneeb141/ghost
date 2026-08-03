@@ -1,0 +1,20 @@
+meta {
+  name: Get Conversion Funnel
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/method/ghost.api.analytics.get_conversion_funnel
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: token {{api_key}}:{{api_secret}}
+}
+
+docs {
+  Requires System Manager role.
+  Requires 'enable_analytics_api' to be checked in Ghost Settings.
+}

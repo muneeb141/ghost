@@ -60,6 +60,8 @@
         "tab_analytics",
         "enable_conversion_logging",
         "conversion_log_retention_days",
+        "enable_analytics_api",
+        "analytics_api_docs",
         "tab_integrations",
         "section_break_webhooks",
         "enable_webhooks",
@@ -459,6 +461,20 @@
             "fieldname": "conversion_log_retention_days",
             "fieldtype": "Int",
             "label": "Conversion Log Retention (Days)"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, exposes a REST API for external BI tools to pull conversion analytics.",
+            "fieldname": "enable_analytics_api",
+            "fieldtype": "Check",
+            "label": "Enable Analytics API"
+        },
+        {
+            "depends_on": "eval:doc.enable_analytics_api==1",
+            "fieldname": "analytics_api_docs",
+            "fieldtype": "HTML",
+            "label": "API Docs",
+            "options": "<div style=\"padding: 15px; background: var(--bg-light-gray); border-radius: 8px; border: 1px solid var(--border-color);\"><h5 style=\"margin-top: 0;\">REST API Endpoint</h5><p><code>GET /api/method/ghost.api.analytics.get_conversion_funnel</code></p><p class=\"text-muted text-small\"><strong>Authentication:</strong> Requires token auth (System Manager role).</p></div>"
         },
         {
             "fieldname": "tab_integrations",
