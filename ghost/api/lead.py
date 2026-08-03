@@ -27,11 +27,18 @@ def capture_email(email, ghost_email=None):
     status_field = settings.lead_status_fieldname or "status"
     captured_status = settings.lead_captured_status or "Captured"
     
-    # Check if this ghost user already captured an email
-    existing_lead = frappe.db.get_value(lead_dt, {ghost_field: ghost_email}, "name")
-    if existing_lead:
+    # Check if a lead already exists for this captured email (from another device)
+    existing_lead_by_email = frappe.db.get_value(lead_dt, {email_field: email}, "name")
+    if existing_lead_by_email:
+        # Link this new ghost session to the existing lead
+        frappe.db.set_value(lead_dt, existing_lead_by_email, ghost_field, ghost_email)
+        return {"status": "success", "message": _("Lead updated successfully")}
+
+    # Check if this ghost user already captured a different email
+    existing_lead_by_ghost = frappe.db.get_value(lead_dt, {ghost_field: ghost_email}, "name")
+    if existing_lead_by_ghost:
         # Update the captured email if it changed
-        frappe.db.set_value(lead_dt, existing_lead, email_field, email)
+        frappe.db.set_value(lead_dt, existing_lead_by_ghost, email_field, email)
         return {"status": "success", "message": _("Lead updated successfully")}
         
     # Create new lead
