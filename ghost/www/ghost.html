@@ -650,6 +650,58 @@
             </div>
         </div>
 
+        <div class="flow-line"></div>
+
+        <!-- Bonus: Webhooks -->
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number" style="background: var(--success-bg); color: var(--success); border-color: rgba(34, 197, 94, 0.2);">
+                    <span style="font-size: 16px;">⚡</span>
+                </div>
+                <div class="step-title">Event Webhooks (Behind the Scenes)</div>
+            </div>
+            <div class="step-desc">
+                When a Ghost User converts, the backend instantly dispatches a secure webhook to your configured integrations (like Zapier, Make.com, or HubSpot). This happens strictly Server-to-Server.
+            </div>
+            
+            <div class="info-banner info" style="display: block;">
+                <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px;">
+                    <span class="icon">💡</span>
+                    <span>
+                        <strong>How to test:</strong> Go to <strong>Ghost Settings &gt; Integrations</strong>, enable Webhooks, and set the URL to <code>http://localhost:9001</code>. Run the local python listener below, trigger a conversion, and watch the JSON payload arrive instantly!
+                    </span>
+                </div>
+                <details style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-left: 25px;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 13px; color: #93c5fd; user-select: none;">Show test_webhook.py script</summary>
+                    <pre style="margin-top: 12px; margin-bottom: 0; font-family: 'SF Mono', monospace; font-size: 11.5px; color: #a78bfa; overflow-x: auto;">
+import http.server, json
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get('Content-Length', 0))
+        print(json.dumps(json.loads(self.rfile.read(length)), indent=2))
+        self.send_response(200); self.end_headers()
+
+print("Listening on port 9001...")
+http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
+                </details>
+            </div>
+
+            <div class="response-panel visible" style="margin-top: 16px;">
+                <div class="response-bar">
+                    <span class="label">Sample Webhook Payload</span>
+                    <span class="status-badge success">HMAC-SHA256 Signed</span>
+                </div>
+                <div class="response-body">{
+  <span class="key">"event"</span>: <span class="string">"ghost_converted"</span>,
+  <span class="key">"ghost_email"</span>: <span class="string">"ghost_a7b8c9d0@guest.local"</span>,
+  <span class="key">"real_email"</span>: <span class="string">"john.doe@example.com"</span>,
+  <span class="key">"conversion_mode"</span>: <span class="string">"rename"</span>,
+  <span class="key">"timestamp"</span>: <span class="string">"2026-08-03 14:30:00.123456"</span>
+}</div>
+            </div>
+        </div>
+
         <div class="footer">
             Built with <a href="https://frappeframework.com" target="_blank">Frappe</a> · 
             <a href="https://github.com/" target="_blank">View on GitHub</a>
