@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost — Interactive Static Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-card: rgba(17, 17, 27, 0.8);
+            --bg-card-hover: rgba(22, 22, 35, 0.9);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-active: rgba(99, 102, 241, 0.4);
+            --text-primary: #e8e8ed;
+            --text-secondary: #8b8b9e;
+            --text-muted: #5a5a6e;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.08);
+            --error: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.08);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.08);
+            --code-bg: rgba(0, 0, 0, 0.4);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Ambient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
+                        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
+            z-index: -1;
+            animation: ambientShift 20s ease-in-out infinite;
+        }
+
+        @keyframes ambientShift {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(-2%, 1%) rotate(1deg); }
+            66% { transform: translate(1%, -1%) rotate(-1deg); }
+        }
+
+        /* Header */
+        .header {
+            padding: 40px 0 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 100px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--warning);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 40px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e8e8ed 0%, #8b8b9e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Container */
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px 24px 60px;
+        }
+
+        /* Flow connector */
+        .flow-line {
+            width: 2px;
+            height: 32px;
+            background: linear-gradient(to bottom, var(--border-active), var(--border));
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .flow-line::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            opacity: 0.4;
+        }
+
+        /* Step Cards */
+        .step {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            transition: all var(--transition);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-active), transparent);
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+
+        .step:hover {
+            border-color: var(--border-active);
+            background: var(--bg-card-hover);
+        }
+
+        .step:hover::before { opacity: 1; }
+
+        .step.completed {
+            border-color: rgba(34, 197, 94, 0.2);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            flex-shrink: 0;
+            transition: all var(--transition);
+        }
+
+        .step.completed .step-number {
+            background: var(--success-bg);
+            color: var(--success);
+            border-color: rgba(34, 197, 94, 0.2);
+        }
+
+        .step-number .check {
+            display: none;
+        }
+
+        .step.completed .step-number .num { display: none; }
+        .step.completed .step-number .check { display: block; }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .step-desc {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 22px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 14px -3px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: #5558e6;
+            box-shadow: 0 6px 20px -3px rgba(99, 102, 241, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        /* Fake Google Button */
+        .fake-google-btn {
+            background: white;
+            color: #3c4043;
+            border: 1px solid #dadce0;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 250px;
+            transition: background 0.2s;
+        }
+        
+        .fake-google-btn:hover { background: #f8f9fa; }
+        
+        .fake-google-btn img {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Input */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 11px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: all var(--transition);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-field:focus {
+            border-color: var(--border-active);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        /* Response display */
+        .response-panel {
+            margin-top: 16px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        .response-panel.visible { display: block; }
+
+        .response-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 14px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .response-bar .label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 100px;
+            letter-spacing: 0.3px;
+        }
+
+        .status-badge.success {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid rgba(34, 197, 94, 0.15);
+        }
+
+        .status-badge.loading {
+            background: var(--warning-bg);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+
+        .response-body {
+            padding: 14px;
+            background: var(--code-bg);
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .response-body .key { color: #a78bfa; }
+        .response-body .string { color: #34d399; }
+        .response-body .boolean { color: #fb923c; }
+
+        /* State data pills */
+        .state-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .pill .label {
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Frictionless conversion section */
+        .convert-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .convert-section .section-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .form-row .input-field { flex: 1; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container { padding: 16px; }
+            .header h1 { font-size: 28px; }
+            .input-group { flex-direction: column; }
+            .form-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-badge">
+                <span class="dot" style="background:var(--warning)"></span>
+                Interactive MOCK Demo
+            </div>
+            <h1>Ghost API</h1>
+            <p>Experience the full ghost-to-user conversion lifecycle in this interactive simulation.</p>
+        </div>
+
+        <!-- Step 1: Ghost Session -->
+        <div class="step" id="step-1">
+            <div class="step-header">
+                <div class="step-number">
+                    <span class="num">1</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="step-title">Create Ghost Session</div>
+            </div>
+            <div class="step-desc">
+                Simulate an anonymous visitor landing on your site. This creates a temporary identity with an API token — no sign-up needed.
+            </div>
+            <button class="btn btn-primary" id="btn-session" onclick="mockCreateSession()">
+                Initialize Session
+            </button>
+            <div class="response-panel" id="resp-1">
+                <div class="response-bar">
+                    <span class="label">Mock Response</span>
+                    <span class="status-badge" id="status-1"></span>
+                </div>
+                <div class="response-body" id="body-1"></div>
+            </div>
+            <div class="state-pills" id="state-1" style="display:none;">
+                <div class="pill"><span class="label">ghost</span> <span id="pill-ghost">—</span></div>
+                <div class="pill"><span class="label">token</span> <span id="pill-token">—</span></div>
+            </div>
+        </div>
+
+        <div class="flow-line"></div>
+
+        <!-- Step 2: Capture Lead -->
+        <div class="step" id="step-2">
+            <div class="step-header">
+                <div class="step-number">
+                    <span class="num">2</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="step-title">Capture Lead Email</div>
+            </div>
+            <div class="step-desc">
+                The anonymous user enters their email in a newsletter, checkout, or interest form. The system silently links it to their ghost session for lead recovery.
+            </div>
+            <div class="input-group">
+                <input type="email" class="input-field" id="input-email" placeholder="user@example.com" />
+                <button class="btn btn-primary" id="btn-capture" onclick="mockCaptureLead()" disabled>
+                    Capture
+                </button>
+            </div>
+            <div class="response-panel" id="resp-2">
+                <div class="response-bar">
+                    <span class="label">Mock Response</span>
+                    <span class="status-badge" id="status-2"></span>
+                </div>
+                <div class="response-body" id="body-2"></div>
+            </div>
+        </div>
+
+        <div class="flow-line"></div>
+
+        <!-- Step 3: Convert -->
+        <div class="step" id="step-3">
+            <div class="step-header">
+                <div class="step-number">
+                    <span class="num">3</span>
+                    <span class="check">✓</span>
+                </div>
+                <div class="step-title">Convert to Real User</div>
+            </div>
+            <div class="step-desc">
+                The ghost user decides to register. Choose either Google Social Login for instant signup, or manual conversion with name details.
+            </div>
+
+            <button class="fake-google-btn" onclick="mockGoogleConvert()" id="btn-google">
+                <img src="https://www.google.com/favicon.ico" alt="Google">
+                Sign in with Google
+            </button>
+
+            <div class="response-panel" id="resp-3-social">
+                <div class="response-bar">
+                    <span class="label">Mock Social Response</span>
+                    <span class="status-badge" id="status-3-social"></span>
+                </div>
+                <div class="response-body" id="body-3-social"></div>
+            </div>
+
+            <div class="convert-section">
+                <div class="section-label">Or convert manually (frictionless)</div>
+                <div class="form-row">
+                    <input type="email" class="input-field" id="input-real-email" placeholder="Real email" />
+                </div>
+                <div class="form-row">
+                    <input type="text" class="input-field" id="input-first" placeholder="First name" />
+                    <input type="text" class="input-field" id="input-last" placeholder="Last name" />
+                </div>
+                <button class="btn btn-primary" id="btn-convert" onclick="mockFrictionlessConvert()" disabled>
+                    Convert User
+                </button>
+            </div>
+
+            <div class="response-panel" id="resp-3-manual">
+                <div class="response-bar">
+                    <span class="label">Mock Conversion Response</span>
+                    <span class="status-badge" id="status-3-manual"></span>
+                </div>
+                <div class="response-body" id="body-3-manual"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Built with <a href="https://frappeframework.com" target="_blank">Frappe</a> · 
+            <a href="https://github.com/" target="_blank">View on GitHub</a>
+        </div>
+    </div>
+
+    <script>
+        // ─── Helpers ────────────────────────────────────────
+        function showResponse(panelId, statusId, bodyId, status, data) {
+            const panel = document.getElementById(panelId);
+            const badge = document.getElementById(statusId);
+            const body = document.getElementById(bodyId);
+
+            panel.classList.add('visible');
+            badge.className = 'status-badge ' + status;
+            badge.textContent = status === 'success' ? '200 OK' : 'Loading...';
+
+            if (status === 'loading') {
+                body.innerHTML = '<span style="color: var(--warning);">Simulating API call...</span>';
+                return;
+            }
+
+            const raw = JSON.stringify(data, null, 2);
+            body.innerHTML = raw
+                .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+                .replace(/: "([^"]*)"/g, ': <span class="string">"$1"</span>')
+                .replace(/: (true|false)/g, ': <span class="boolean">$1</span>')
+                .replace(/: (\d+)/g, ': <span class="boolean">$1</span>');
+        }
+
+        function markComplete(stepId) {
+            document.getElementById(stepId).classList.add('completed');
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ─── Step 1: Create Ghost Session ────────────────────
+        async function mockCreateSession() {
+            const btn = document.getElementById('btn-session');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Initializing...';
+            showResponse('resp-1', 'status-1', 'body-1', 'loading', null);
+
+            await sleep(800); // Simulate network latency
+
+            const ghostEmail = "ghost_3f8b1a92@guest.local";
+            const ghostToken = "6f9b2d3c5e4a8b7c";
+
+            showResponse('resp-1', 'status-1', 'body-1', 'success', {
+                "message": "Ghost session created successfully",
+                "user": ghostEmail,
+                "access_token": ghostToken,
+                "refresh_token": "a1b2c3d4e5f6g7h8",
+                "expires_in": 3600,
+                "token_type": "Bearer"
+            });
+            
+            markComplete('step-1');
+            document.getElementById('state-1').style.display = 'flex';
+            document.getElementById('pill-ghost').textContent = ghostEmail;
+            document.getElementById('pill-token').textContent = ghostToken.substring(0, 8) + '…';
+            document.getElementById('btn-capture').disabled = false;
+            document.getElementById('btn-convert').disabled = false;
+
+            btn.innerHTML = '✓ Session Created';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-secondary');
+        }
+
+        // ─── Step 2: Capture Lead ────────────────────────────
+        async function mockCaptureLead() {
+            const email = document.getElementById('input-email').value;
+            if (!email) return;
+
+            const btn = document.getElementById('btn-capture');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>';
+
+            showResponse('resp-2', 'status-2', 'body-2', 'loading', null);
+            await sleep(600); 
+
+            showResponse('resp-2', 'status-2', 'body-2', 'success', {
+                "status": "success",
+                "message": "Lead captured successfully"
+            });
+            
+            markComplete('step-2');
+            btn.innerHTML = '✓ Captured';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-secondary');
+        }
+
+        // ─── Step 3a: Social Login (Google) ──────────────────
+        async function mockGoogleConvert() {
+            showResponse('resp-3-social', 'status-3-social', 'body-3-social', 'loading', null);
+            await sleep(1200);
+
+            showResponse('resp-3-social', 'status-3-social', 'body-3-social', 'success', {
+                "message": "User converted successfully",
+                "user": document.getElementById('input-email').value || "user@gmail.com",
+                "merged": true,
+                "conversion_mode": "social_login",
+                "access_token": "985d8eadaa79560aff2a3",
+                "refresh_token": "c35b08b4cb63eeb298a",
+                "expires_in": 3600,
+                "token_type": "Bearer"
+            });
+            markComplete('step-3');
+        }
+
+        // ─── Step 3b: Frictionless Convert ───────────────────
+        async function mockFrictionlessConvert() {
+            const realEmail = document.getElementById('input-real-email').value;
+            if (!realEmail) return;
+
+            const btn = document.getElementById('btn-convert');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Converting...';
+
+            showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'loading', null);
+            await sleep(900);
+
+            showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'success', {
+                "message": "User converted successfully",
+                "user": realEmail,
+                "merged": false,
+                "conversion_mode": "rename",
+                "access_token": "985d8eadaa79560aff2a3",
+                "refresh_token": "c35b08b4cb63eeb298a",
+                "expires_in": 3600,
+                "token_type": "Bearer"
+            });
+            
+            markComplete('step-3');
+            btn.innerHTML = '✓ Converted';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-secondary');
+        }
+    </script>
+</body>
+</html>
