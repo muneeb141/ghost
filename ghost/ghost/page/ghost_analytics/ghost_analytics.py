@@ -22,6 +22,16 @@ def get_analytics_data():
 	conversion_rate = (
 		round((total_conversions / total_sessions) * 100, 2) if total_sessions else 0.0
 	)
+	
+	total_leads = 0
+	converted_leads = 0
+	if frappe.db.exists("DocType", "Ghost Lead"):
+		total_leads = frappe.db.count("Ghost Lead")
+		converted_leads = frappe.db.count("Ghost Lead", {"status": "Converted"})
+		
+	lead_conversion_rate = (
+		round((converted_leads / total_leads) * 100, 2) if total_leads else 0.0
+	)
 
 	avg_duration = frappe.db.sql(
 		"SELECT AVG(conversion_duration_ms) FROM `tabGhost Conversion Log`"
@@ -68,6 +78,8 @@ def get_analytics_data():
 		"total_sessions": total_sessions,
 		"total_conversions": total_conversions,
 		"conversion_rate": conversion_rate,
+		"total_leads": total_leads,
+		"lead_conversion_rate": lead_conversion_rate,
 		"avg_conversion_duration_ms": round(avg_duration or 0, 2),
 		"conversions_by_mode": conversions_by_mode,
 		"daily": {

@@ -24,14 +24,16 @@ frappe.pages["ghost-analytics"].on_page_load = function (wrapper) {
 	function render_cards(data) {
 		const cards = [
 			{ label: __("Total Ghost Sessions"), value: data.total_sessions },
+			{ label: __("Total Leads Captured"), value: data.total_leads || 0 },
 			{ label: __("Total Conversions"), value: data.total_conversions },
-			{ label: __("Conversion Rate"), value: data.conversion_rate + "%" },
+			{ label: __("Session Conversion Rate"), value: data.conversion_rate + "%" },
+			{ label: __("Lead Conversion Rate"), value: (data.lead_conversion_rate || 0) + "%" },
 			{ label: __("Avg Conversion Time"), value: data.avg_conversion_duration_ms + " ms" },
 		];
 		const html = cards
 			.map(
 				(c) => `
-				<div class="col-sm-6 col-md-3" style="margin-bottom: 15px;">
+				<div class="col-sm-6 col-md-4" style="margin-bottom: 15px;">
 					<div class="frappe-card" style="padding: 15px; text-align: center;">
 						<div style="font-size: 24px; font-weight: 600;">${c.value}</div>
 						<div class="text-muted">${c.label}</div>
@@ -91,7 +93,14 @@ frappe.pages["ghost-analytics"].on_page_load = function (wrapper) {
 		}
 		new frappe.Chart($body[0], {
 			data: {
-				labels: modes.map((m) => m.conversion_mode),
+				labels: modes.map((m) => {
+					const labelMap = {
+						"manual_migration": __("Account Merge"),
+						"rename": __("New Account"),
+						"already_converted": __("Already Converted"),
+					};
+					return labelMap[m.conversion_mode] || m.conversion_mode;
+				}),
 				datasets: [{ name: __("Conversions"), values: modes.map((m) => m.count) }],
 			},
 			type: "bar",
