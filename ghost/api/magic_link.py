@@ -69,7 +69,7 @@ def send_magic_link(ghost_email, real_email):
             now=True
         )
     except Exception as e:
-        frappe.log_error(f"Magic Link Email Failed: {str(e)}")
+        frappe.log_error(message=str(e), title="Magic Link Email Failed")
         # If email fails (e.g. invalid SMTP config locally), we still return success 
         # but attach the link so the developer can still test the flow!
         pass
