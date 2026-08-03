@@ -9,6 +9,7 @@
         "enable_auto_cleanup",
         "ghost_role",
         "ghost_email_domain",
+        "column_break_ghost_identity",
         "expiration_days",
         "default_user_role",
         "client_id",
@@ -27,6 +28,7 @@
         "allow_anonymous_otp",
         "sandbox_mode",
         "sandbox_otp",
+        "column_break_otp",
         "max_otp_attempts",
         "otp_length",
         "otp_code_type",
@@ -46,6 +48,7 @@
         "lead_doctype",
         "lead_email_fieldname",
         "lead_ghost_fieldname",
+        "column_break_lead",
         "lead_status_fieldname",
         "lead_captured_status",
         "lead_converted_status",
@@ -62,7 +65,10 @@
         "enable_webhooks",
         "webhook_url",
         "webhook_secret",
-        "enable_realtime_events"
+        "enable_realtime_events",
+        "tab_magic_link_ui",
+        "magic_link_html",
+        "magic_link_css"
     ],
     "fields": [
         {
@@ -212,6 +218,27 @@
             "fieldtype": "Link",
             "label": "Magic Link Email Template",
             "options": "Email Template"
+        },
+        {
+            "fieldname": "tab_magic_link_ui",
+            "fieldtype": "Tab Break",
+            "label": "Magic Link UI"
+        },
+        {
+            "description": "Custom HTML to completely override the default Magic Link conversion page UI. You can use Jinja variables like {{ magic_link }} or {{ error_message }} here.",
+            "fieldname": "magic_link_html",
+            "fieldtype": "Code",
+            "label": "Custom HTML",
+            "options": "HTML",
+            "default": ""
+        },
+        {
+            "description": "Custom CSS to inject into the Magic Link conversion page.",
+            "fieldname": "magic_link_css",
+            "fieldtype": "Code",
+            "label": "Custom CSS",
+            "options": "CSS",
+            "default": "{{ settings.magic_link_css }}"
         },
         {
             "fieldname": "tab_otp",
@@ -471,6 +498,18 @@
             "fieldname": "enable_realtime_events",
             "fieldtype": "Check",
             "label": "Enable Realtime Events"
+        },
+        {
+            "fieldname": "column_break_ghost_identity",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "column_break_otp",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "column_break_lead",
+            "fieldtype": "Column Break"
         }
     ],
     "issingle": 1,
