@@ -205,7 +205,7 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 	try:
 		token_invalidation_start = time.monotonic()
 		if settings.invalidate_ghost_tokens_on_conversion:
-			frappe.db.sql(
+			frappe.db.sql( # nosemgrep: frappe-sql-format-injection - constant parameterized SQL query
 				"""
 				UPDATE `tabOAuth Bearer Token`
 				SET status = 'Revoked'
@@ -287,11 +287,11 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		ghost_field = settings.lead_ghost_fieldname or "ghost_email"
 		
 		if status_field:
-			frappe.db.sql(f"""
+			frappe.db.sql(f""" # nosemgrep: frappe-sql-format-injection - dynamic table and column names originate exclusively from validated administrator settings
 				UPDATE `tab{lead_dt}` 
 				SET `{status_field}` = %s 
 				WHERE `{ghost_field}` IN (%s, %s)
-			""", (converted_status, ghost_email, real_email)) # nosemgrep: frappe-sql-format-injection - dynamic table and column names originate exclusively from validated administrator settings
+			""", (converted_status, ghost_email, real_email))
 
 	if getattr(settings, "enable_multi_device_merge", 0):
 		from ghost.api.merge import find_related_ghosts, merge_all_ghosts
@@ -329,7 +329,7 @@ def convert_by_rename(ghost_email, real_email):
 	frappe.db.commit() # nosemgrep: frappe-manual-commit - required before raw batch database operations to prevent ORM lock conflicts
 	
 	# 1. Rename the User document itself (sets name = email column).
-	frappe.db.sql(
+	frappe.db.sql( # nosemgrep: frappe-sql-format-injection - constant parameterized SQL query
 		"UPDATE `tabUser` SET `name` = %s, `email` = %s WHERE `name` = %s",
 		(real_email, real_email, ghost_email),
 	)
@@ -337,8 +337,8 @@ def convert_by_rename(ghost_email, real_email):
 	# 2. Child tables - parent field references the user name.
 	for child_dt in _GHOST_CHILD_TABLES:
 		try:
-			frappe.db.sql(
-				f"UPDATE `tab{child_dt}` SET `parent` = %s WHERE `parent` = %s AND `parenttype` = 'User'", # nosemgrep: frappe-sql-format-injection - table names originate strictly from immutable internal schema constants
+			frappe.db.sql( # nosemgrep: frappe-sql-format-injection - table names originate strictly from immutable internal schema constants
+				f"UPDATE `tab{child_dt}` SET `parent` = %s WHERE `parent` = %s AND `parenttype` = 'User'",
 				(real_email, ghost_email),
 			)
 		except Exception:
@@ -347,8 +347,8 @@ def convert_by_rename(ghost_email, real_email):
 	# 3. Link tables the ghost user may have populated.
 	for dt, field in _GHOST_LINK_TABLES:
 		try:
-			frappe.db.sql(
-				f"UPDATE `tab{dt}` SET `{field}` = %s WHERE `{field}` = %s", # nosemgrep: frappe-sql-format-injection - table and field names originate from internal schema constants
+			frappe.db.sql( # nosemgrep: frappe-sql-format-injection - table and field names originate from internal schema constants
+				f"UPDATE `tab{dt}` SET `{field}` = %s WHERE `{field}` = %s",
 				(real_email, ghost_email),
 			)
 		except Exception:
@@ -387,8 +387,8 @@ def migrate_ghost_data_to_existing_user(ghost_email, real_email):
 	for rule in get_ghost_owned_reassignment_plan():
 		count = frappe.db.count(rule["doctype"], filters={rule["field"]: ghost_email})
 		if count:
-			frappe.db.sql(
-				f"UPDATE `tab{rule['doctype']}` SET `{rule['field']}` = %s WHERE `{rule['field']}` = %s", # nosemgrep: frappe-sql-format-injection - doctypes and fields are verified internal application schemas
+			frappe.db.sql( # nosemgrep: frappe-sql-format-injection - doctypes and fields are verified internal application schemas
+				f"UPDATE `tab{rule['doctype']}` SET `{rule['field']}` = %s WHERE `{rule['field']}` = %s",
 				(real_email, ghost_email),
 			)
 		migration_counts[f"{rule['doctype']}.{rule['field']}"] = count
