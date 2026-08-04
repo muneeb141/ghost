@@ -501,11 +501,30 @@
         }
 
         /* Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 24px 16px; max-width: 100%; }
+            .step { padding: 20px; border-radius: 12px; margin-bottom: 16px; }
+            .header h1 { font-size: 32px; }
+            .input-group, .form-row { flex-direction: column; gap: 10px; }
+            .btn { width: 100%; justify-content: center; }
+        }
+
         @media (max-width: 640px) {
-            .container { padding: 16px; }
-            .header h1 { font-size: 28px; }
-            .input-group { flex-direction: column; }
-            .form-row { flex-direction: column; }
+            .container { padding: 16px 12px; }
+            .header { margin-bottom: 32px; }
+            .header h1 { font-size: 26px; }
+            .header p { font-size: 14px; }
+            .step-title { font-size: 16px; }
+            .step-desc { font-size: 13px; }
+            .pill { font-size: 11px; padding: 5px 10px; max-width: 100%; word-break: break-all; }
+            .response-body { font-size: 11.5px; padding: 12px; }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 22px; }
+            .step { padding: 16px; }
+            .info-banner { padding: 12px; font-size: 11.5px; }
+            .step-number { width: 28px; height: 28px; font-size: 13px; }
         }
     </style>
 </head>

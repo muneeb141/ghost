@@ -129,6 +129,47 @@
         cursor: not-allowed;
         box-shadow: none;
     }
+
+    /* Responsive Mobile Design */
+    @media (max-width: 640px) {
+        .magic-link-container {
+            padding: 1rem;
+            min-height: calc(100vh - 80px);
+        }
+        .magic-link-card {
+            padding: 2.25rem 1.5rem;
+            border-radius: 14px;
+        }
+        .magic-link-title {
+            font-size: 1.5rem;
+        }
+        .magic-link-subtitle {
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+        .magic-link-btn {
+            padding: 0.875rem 1.25rem;
+            font-size: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .magic-link-container {
+            padding: 0.75rem;
+        }
+        .magic-link-card {
+            padding: 1.75rem 1.25rem;
+            border-radius: 12px;
+        }
+        .magic-link-title {
+            font-size: 1.35rem;
+            margin-bottom: 0.75rem;
+        }
+        .magic-link-subtitle {
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+    }
 </style>
 
 <div class="magic-link-container">
