@@ -24,11 +24,12 @@ class TestLeadCapture(FrappeTestCase):
             
         self.settings.lead_reminder_email_template = "Test Lead Reminder"
         self.settings.verify_otp_on_conversion = 0
+        self.settings.sandbox_mode = 0
         self.settings.save()
         
         frappe.db.sql("DELETE FROM `tabGhost Lead`")
         frappe.db.sql("DELETE FROM `tabUser` WHERE email LIKE 'lead_test_%'")
-        frappe.db.commit()
+        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test harness to reset test user state
 
     def test_capture_email(self):
         # Create ghost user
@@ -94,7 +95,7 @@ class TestLeadCapture(FrappeTestCase):
         # Backdate creation to make it older than 24 hours
         old_date = add_to_date(now_datetime(), hours=-25)
         frappe.db.set_value("Ghost Lead", lead.name, "creation", old_date)
-        frappe.db.commit()
+        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test harness to persist backdated timestamp for scheduler assertions
         
         # Run scheduled task
         send_lead_reminders()

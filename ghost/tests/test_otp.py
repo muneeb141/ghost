@@ -10,6 +10,7 @@ class TestFrappeIdentityOTP(unittest.TestCase):
 		settings.otp_delivery_type = "Email"
 		settings.otp_code_type = "Numeric"
 		settings.otp_length = 6
+		settings.sandbox_mode = 0
 		settings.save()
 
 	def test_otp_flow(self):
@@ -69,21 +70,21 @@ class TestSandboxOTP(unittest.TestCase):
 		try:
 			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 1)
 			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_otp", self.SANDBOX_OTP)
-			frappe.db.commit()
+			frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test runner to persist sandbox config before executing test assertions
 		except Exception:
 			# If the column doesn't exist yet (pre-migrate), run migrate first.
 			from frappe.migrate import migrate
 			migrate()
 			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 1)
 			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_otp", self.SANDBOX_OTP)
-			frappe.db.commit()
+			frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test runner to persist sandbox config
 		# Bust cache so get_cached_doc picks up the change
 		frappe.clear_cache(doctype="Ghost Settings")
 
 	def _disable_sandbox(self):
 		try:
 			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 0)
-			frappe.db.commit()
+			frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test runner teardown
 		except Exception:
 			pass
 		frappe.clear_cache(doctype="Ghost Settings")

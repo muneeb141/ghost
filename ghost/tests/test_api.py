@@ -20,6 +20,7 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 		settings.otp_delivery_type = "Email"
 		settings.verify_otp_on_conversion = 0
 		settings.default_user_role = None 
+		settings.sandbox_mode = 0
 		settings.save()
 
 	def test_create_ghost_session(self):

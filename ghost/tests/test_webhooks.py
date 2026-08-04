@@ -66,7 +66,7 @@ class TestEventWebhooks(unittest.TestCase):
 		settings.webhook_secret = None
 		settings.enable_realtime_events = 0
 		settings.save()
-		frappe.db.commit()
+		frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test tearDown to reset webhook settings across test cases
 
 	def test_nothing_fires_when_webhooks_disabled(self):
 		settings = frappe.get_single("Ghost Settings")

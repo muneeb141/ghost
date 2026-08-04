@@ -9,12 +9,13 @@ class TestMultiDeviceMerge(FrappeTestCase):
         self.settings.enable_multi_device_merge = 1
         self.settings.merge_detection_method = "Lead Email"
         self.settings.verify_otp_on_conversion = 0
+        self.settings.sandbox_mode = 0
         self.settings.save()
         
         frappe.db.sql("DELETE FROM `tabUser` WHERE email LIKE 'merge_test_%'")
         if frappe.db.exists("DocType", "Ghost Lead"):
             frappe.db.sql("DELETE FROM `tabGhost Lead` WHERE captured_email = 'merge_test_real@example.com'")
-        frappe.db.commit()
+        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test harness to persist cleaned DB state before merge assertions
 
     def test_merge_related_ghosts(self):
         # 1. Create main ghost

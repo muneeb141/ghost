@@ -18,6 +18,7 @@ class TestGhostAuth(unittest.TestCase):
 		settings.otp_delivery_type = "Email"
 		settings.verify_otp_on_conversion = 0
 		settings.default_user_role = "Customer"
+		settings.sandbox_mode = 0
 		settings.save()
 		
 		# Ensure Ghost Role exists
@@ -30,7 +31,7 @@ class TestGhostAuth(unittest.TestCase):
 
 		# Clear OTPs for clean state
 		frappe.db.delete("OTP")
-		frappe.db.commit()
+		frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test harness to clear OTP table across isolated transactions
 
 	def test_direct_signup_and_login(self):
 		"""

@@ -23,6 +23,7 @@ class TestMagicLink(FrappeTestCase):
             
         self.settings.magic_link_email_template = "Test Magic Link"
         self.settings.verify_otp_on_conversion = 1
+        self.settings.sandbox_mode = 0
         self.settings.save()
         
         # Clear out old test users
@@ -32,7 +33,7 @@ class TestMagicLink(FrappeTestCase):
         self.ghost_email = session["user"]
         self.real_email = "magic_real@example.com"
         
-        frappe.db.commit()
+        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test harness to persist cleaned test database state
 
     def test_send_magic_link_fails_when_disabled(self):
         self.settings.enable_magic_link = 0

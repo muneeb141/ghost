@@ -11,6 +11,7 @@ class TestSocialLogin(FrappeTestCase):
         self.settings.enable_social_login = 1
         self.settings.google_client_id = "test-client-id"
         self.settings.verify_otp_on_conversion = 1
+        self.settings.sandbox_mode = 0
         self.settings.save()
         
         frappe.db.sql("DELETE FROM `tabUser` WHERE email IN ('social_ghost@guest.local', 'social_real@example.com')")
@@ -18,7 +19,7 @@ class TestSocialLogin(FrappeTestCase):
         session = create_ghost_session("social_ghost@guest.local")
         self.ghost_email = session["user"]
         self.real_email = "social_real@example.com"
-        frappe.db.commit()
+        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test harness to persist cleaned test state
 
     def test_convert_with_google_fails_when_disabled(self):
         self.settings.enable_social_login = 0
