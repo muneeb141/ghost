@@ -3,7 +3,7 @@ from frappe import _
 from frappe.utils import add_days, getdate, now_datetime
 
 @frappe.whitelist()
-def get_conversion_funnel(from_date=None, to_date=None):
+def get_conversion_funnel(from_date=None, to_date=None, days=None):
     """
     Exposes conversion funnel metrics for external BI tools.
     Requires 'System Manager' role and 'enable_analytics_api' setting to be enabled.
@@ -21,7 +21,11 @@ def get_conversion_funnel(from_date=None, to_date=None):
 
     # Default to last 30 days if no dates provided
     if not from_date:
-        from_date = getdate(add_days(now_datetime(), -30))
+        try:
+            days_int = int(days) if days else 30
+        except ValueError:
+            days_int = 30
+        from_date = getdate(add_days(now_datetime(), -days_int))
     if not to_date:
         to_date = getdate(now_datetime())
 
@@ -52,6 +56,32 @@ def get_conversion_funnel(from_date=None, to_date=None):
         (from_date, to_date)
     )[0][0] or 0.0
 
+    # Total merged sessions
+    total_merged_sessions = frappe.db.sql(
+        "SELECT SUM(merged_ghosts_count) FROM `tabGhost Conversion Log` WHERE converted_at BETWEEN %s AND %s",
+        (from_date, to_date)
+    )[0][0] or 0
+
+    # Lead recovery metrics
+    total_leads = 0
+    converted_leads = 0
+    reminded_leads = 0
+    recovered_leads = 0
+    if frappe.db.exists("DocType", "Ghost Lead"):
+        total_leads = frappe.db.count("Ghost Lead", {"creation": ["between", [from_date, to_date]]})
+        converted_leads = frappe.db.count("Ghost Lead", {"status": "Converted", "modified": ["between", [from_date, to_date]]})
+        reminded_leads = frappe.db.count("Ghost Lead", {"conversion_reminder_sent": 1, "creation": ["between", [from_date, to_date]]})
+        recovered_leads = frappe.db.count("Ghost Lead", {"conversion_reminder_sent": 1, "status": "Converted", "modified": ["between", [from_date, to_date]]})
+
+    lead_recovery = {
+        "total_leads": total_leads,
+        "converted_leads": converted_leads,
+        "lead_conversion_rate": round((converted_leads / total_leads) * 100, 2) if total_leads else 0.0,
+        "reminded_leads": reminded_leads,
+        "recovered_leads": recovered_leads,
+        "reminder_recovery_rate": round((recovered_leads / reminded_leads) * 100, 2) if reminded_leads else 0.0,
+    }
+
     # 5. Conversions by Mode
     conversions_by_mode = frappe.db.sql(
         """
@@ -59,6 +89,19 @@ def get_conversion_funnel(from_date=None, to_date=None):
         FROM `tabGhost Conversion Log`
         WHERE converted_at BETWEEN %s AND %s
         GROUP BY conversion_mode
+        ORDER BY count DESC
+        """,
+        (from_date, to_date),
+        as_dict=True
+    )
+
+    # Conversions by Channel
+    conversions_by_channel = frappe.db.sql(
+        """
+        SELECT COALESCE(conversion_channel, 'OTP') AS channel, COUNT(*) AS count
+        FROM `tabGhost Conversion Log`
+        WHERE converted_at BETWEEN %s AND %s
+        GROUP BY COALESCE(conversion_channel, 'OTP')
         ORDER BY count DESC
         """,
         (from_date, to_date),
@@ -89,10 +132,13 @@ def get_conversion_funnel(from_date=None, to_date=None):
                 "total_sessions": total_sessions,
                 "total_conversions": total_conversions,
                 "conversion_rate": conversion_rate,
-                "avg_time_to_convert_ms": round(avg_duration, 2)
+                "avg_time_to_convert_ms": round(avg_duration, 2),
+                "total_merged_sessions": int(total_merged_sessions),
+                "lead_recovery": lead_recovery
             },
             "breakdowns": {
                 "conversions_by_mode": conversions_by_mode,
+                "conversions_by_channel": conversions_by_channel,
                 "daily_conversions": daily_breakdown
             }
         }

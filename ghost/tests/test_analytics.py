@@ -8,6 +8,9 @@ from ghost.tasks import delete_old_conversion_logs
 
 class TestConversionAnalytics(unittest.TestCase):
 	def setUp(self):
+		import frappe.core.doctype.user.user as user_module
+		user_module.throttle_user_creation = lambda: None
+
 		# Ensure Ghost Role exists
 		if not frappe.db.exists("Role", "Ghost"):
 			frappe.get_doc({"doctype": "Role", "role_name": "Ghost"}).insert(ignore_permissions=True)
@@ -65,6 +68,7 @@ class TestConversionAnalytics(unittest.TestCase):
 		log = frappe.get_doc("Ghost Conversion Log", log_name)
 		self.assertEqual(log.ghost_email, ghost_email)
 		self.assertEqual(log.conversion_mode, "rename")
+		self.assertEqual(log.conversion_channel, "OTP")
 		self.assertIsNotNone(log.converted_at)
 		self.assertGreaterEqual(log.conversion_duration_ms, 0)
 		print(f"\n[Success] Logged conversion {ghost_email} -> {real_email}")
@@ -151,3 +155,30 @@ class TestConversionAnalytics(unittest.TestCase):
 		)
 		frappe.delete_doc("Ghost Conversion Log", old_log.name, force=True)
 		print("\n[Success] Cleanup respected disabled logging setting")
+
+	def test_analytics_dashboard_endpoint_and_channels(self):
+		from ghost.ghost.page.ghost_analytics.ghost_analytics import get_analytics_data
+		settings = frappe.get_single("Ghost Settings")
+		settings.enable_conversion_logging = 1
+		settings.save()
+
+		real_email = "analytics_channel_test@example.com"
+		frappe.db.delete("Ghost Conversion Log", {"real_email": real_email})
+		ghost_email = create_ghost_session()["user"]
+		if frappe.db.exists("User", real_email):
+			frappe.delete_doc("User", real_email, force=True)
+
+		convert_to_real_user(ghost_email, real_email, conversion_channel="Magic Link")
+
+		log_name = frappe.db.exists("Ghost Conversion Log", {"real_email": real_email})
+		log = frappe.get_doc("Ghost Conversion Log", log_name)
+		self.assertEqual(log.conversion_channel, "Magic Link")
+
+		frappe.set_user("Administrator")
+		data = get_analytics_data()
+		self.assertIn("conversions_by_channel", data)
+		self.assertIn("reminder_recovery_rate", data)
+		self.assertIn("total_merged_ghosts", data)
+		channels = {row["channel"]: row["count"] for row in data["conversions_by_channel"]}
+		self.assertIn("Magic Link", channels)
+		print("\n[Success] Verified get_analytics_data returns channel breakdown and recovery stats")

@@ -129,7 +129,7 @@ def create_ghost_session(email=None, fingerprint=None):
 	}
 
 @frappe.whitelist()
-def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None, otp_code=None, bypass_otp=False):
+def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None, otp_code=None, bypass_otp=False, conversion_channel="OTP"):
 	"""
 	Converts a Ghost User to a Real User using one of two conversion modes:
 	- rename: lightweight rename when target user does not exist
@@ -203,11 +203,27 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 	original_user = frappe.session.user
 	frappe.set_user("Administrator")
 	try:
+		token_invalidation_start = time.monotonic()
+		if settings.invalidate_ghost_tokens_on_conversion:
+			frappe.db.sql(
+				"""
+				UPDATE `tabOAuth Bearer Token`
+				SET status = 'Revoked'
+				WHERE user = %s AND status = 'Active'
+			""",
+				(ghost_email,),
+			)
+			logger.info(f"Invalidated ghost tokens for {ghost_email}")
+		logger.info(
+			f"Ghost conversion token invalidation duration_ms={(time.monotonic() - token_invalidation_start) * 1000:.2f} "
+			f"ghost={ghost_email} real={real_email}"
+		)
+
 		branch_start = time.monotonic()
 		if target_exists:
 			migration_stats = migrate_ghost_data_to_existing_user(ghost_email, real_email)
 			conversion_mode = "manual_migration"
-			merged = True
+			merged = False
 		else:
 			convert_by_rename(ghost_email, real_email)
 			migration_stats = {}
@@ -233,22 +249,6 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 	logger.info(
 		f"Ghost conversion role/profile update duration_ms={(time.monotonic() - role_profile_start) * 1000:.2f} "
 		f"ghost={ghost_email} real={real_email} mode={conversion_mode}"
-	)
-
-	token_invalidation_start = time.monotonic()
-	if settings.invalidate_ghost_tokens_on_conversion:
-		frappe.db.sql(
-			"""
-			UPDATE `tabOAuth Bearer Token`
-			SET status = 'Revoked'
-			WHERE user = %s AND status = 'Active'
-		""",
-			(ghost_email,),
-		)
-		logger.info(f"Invalidated ghost tokens for {ghost_email}")
-	logger.info(
-		f"Ghost conversion token invalidation duration_ms={(time.monotonic() - token_invalidation_start) * 1000:.2f} "
-		f"ghost={ghost_email} real={real_email}"
 	)
 
 	token_generation_start = time.monotonic()
@@ -305,7 +305,7 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 				response["merged_ghosts"] = related
 				response["merged_count"] = merged_count
 
-	_log_conversion(settings, ghost_email, real_email, conversion_mode, total_start)
+	_log_conversion(settings, ghost_email, real_email, conversion_mode, total_start, conversion_channel=conversion_channel)
 
 	frappe.db.commit()
 	logger.info(
@@ -425,7 +425,7 @@ def apply_user_profile_and_roles(user, settings, first_name=None, last_name=None
 		user.last_name = last_name
 
 
-def _log_conversion(settings, ghost_email, real_email, conversion_mode, total_start):
+def _log_conversion(settings, ghost_email, real_email, conversion_mode, total_start, conversion_channel="OTP"):
 	"""Record a successful conversion in Ghost Conversion Log.
 
 	Controlled by the enable_conversion_logging toggle in Ghost Settings.
@@ -447,6 +447,7 @@ def _log_conversion(settings, ghost_email, real_email, conversion_mode, total_st
 			"ghost_email": ghost_email,
 			"real_email": real_email,
 			"conversion_mode": conversion_mode,
+			"conversion_channel": conversion_channel,
 			"conversion_duration_ms": (time.monotonic() - total_start) * 1000,
 			"converted_at": now_datetime(),
 			"client_info": client_info,

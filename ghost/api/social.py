@@ -56,7 +56,8 @@ def convert_with_google(ghost_email, id_token):
             real_email=real_email,
             first_name=first_name,
             last_name=last_name,
-            bypass_otp=True
+            bypass_otp=True,
+            conversion_channel="Google"
         )
         
         return conversion_result

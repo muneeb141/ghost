@@ -11,8 +11,10 @@
         "ghost_email",
         "real_email",
         "conversion_mode",
+        "conversion_channel",
         "column_break_1",
         "conversion_duration_ms",
+        "merged_ghosts_count",
         "converted_at",
         "section_break_client",
         "client_info"
@@ -57,6 +59,15 @@
             "reqd": 1
         },
         {
+            "default": "OTP",
+            "fieldname": "conversion_channel",
+            "fieldtype": "Select",
+            "in_list_view": 1,
+            "in_standard_filter": 1,
+            "label": "Conversion Channel",
+            "options": "OTP\nMagic Link\nGoogle\nDirect/Other"
+        },
+        {
             "fieldname": "column_break_1",
             "fieldtype": "Column Break"
         },
@@ -65,6 +76,13 @@
             "fieldtype": "Float",
             "in_list_view": 1,
             "label": "Conversion Duration (ms)"
+        },
+        {
+            "default": "0",
+            "fieldname": "merged_ghosts_count",
+            "fieldtype": "Int",
+            "in_list_view": 1,
+            "label": "Merged Ghosts Count"
         },
         {
             "fieldname": "converted_at",

@@ -1,16 +1,27 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "naming_series:",
  "creation": "2026-08-03 23:13:30.368141",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "naming_series",
   "fingerprint",
   "ghost_email",
   "last_seen"
  ],
  "fields": [
+  {
+   "default": "GFP-.YYYY.-.MM.-.DD.-.###.",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "GFP-.YYYY.-.MM.-.DD.-.###.",
+   "reqd": 1
+  },
   {
    "fieldname": "fingerprint",
    "fieldtype": "Data",
@@ -41,6 +52,7 @@
  "modified_by": "Administrator",
  "module": "Ghost",
  "name": "Ghost Fingerprint",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {

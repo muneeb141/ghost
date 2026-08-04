@@ -110,7 +110,8 @@ def consume_magic_link(token):
     response = convert_to_real_user(
         ghost_email=token_doc.ghost_email,
         real_email=token_doc.real_email,
-        bypass_otp=True
+        bypass_otp=True,
+        conversion_channel="Magic Link"
     )
     
     if settings.magic_link_redirect_url:

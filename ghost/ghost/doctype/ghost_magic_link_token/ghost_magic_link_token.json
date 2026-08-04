@@ -1,12 +1,13 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "hash",
+ "autoname": "naming_series:",
  "creation": "2026-08-02 22:40:30.880316",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "naming_series",
   "token",
   "ghost_email",
   "real_email",
@@ -14,6 +15,15 @@
   "expires_on"
  ],
  "fields": [
+  {
+   "default": "GMLT-.YYYY.-.MM.-.DD.-.###.",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "GMLT-.YYYY.-.MM.-.DD.-.###.",
+   "reqd": 1
+  },
   {
    "fieldname": "token",
    "fieldtype": "Data",
@@ -63,7 +73,7 @@
  "modified_by": "Administrator",
  "module": "Ghost",
  "name": "Ghost Magic Link Token",
- "naming_rule": "Random",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {

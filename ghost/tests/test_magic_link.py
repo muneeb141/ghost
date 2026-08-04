@@ -70,15 +70,17 @@ class TestMagicLink(FrappeTestCase):
         # Need a mock context
         class MockContext:
             error_message = None
-            success = False
-            response = None
+            is_valid = False
+            token = None
             
         context = MockContext()
         get_context(context)
+        self.assertTrue(getattr(context, "is_valid", False))
         
-        self.assertTrue(context.success)
-        self.assertEqual(context.response["user"], self.real_email)
-        self.assertEqual(context.response["conversion_mode"], "rename")
+        from ghost.api.magic_link import consume_magic_link
+        res = consume_magic_link(token_doc.token)
+        self.assertEqual(res["user"], self.real_email)
+        self.assertEqual(res["conversion_mode"], "rename")
         
         # Check token is marked as Used
         token_doc.reload()

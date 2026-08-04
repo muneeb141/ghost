@@ -163,12 +163,13 @@ class TestFrappeIdentityAPI(unittest.TestCase):
 		
 		# 2. Create Real User (Target)
 		real_email = "existing_real@example.com"
-		if not frappe.db.exists("User", real_email):
-			u = frappe.new_doc("User")
-			u.email = real_email
-			u.first_name = "Existing"
-			u.last_name = "Durable"
-			u.save(ignore_permissions=True)
+		if frappe.db.exists("User", real_email):
+			frappe.delete_doc("User", real_email, force=True)
+		u = frappe.new_doc("User")
+		u.email = real_email
+		u.first_name = "Existing"
+		u.last_name = "Durable"
+		u.save(ignore_permissions=True)
 		
 		# 3. Create app-owned ghost-linked data (OTP.user)
 		otp_result = generate_otp(email="manual_migration_source@example.com", purpose="Login", user=ghost_email, send=False)

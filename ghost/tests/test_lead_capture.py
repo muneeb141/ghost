@@ -36,7 +36,7 @@ class TestLeadCapture(FrappeTestCase):
         ghost_email = session["user"]
         
         # Capture email
-        res = capture_email(ghost_email, "lead_test_real@example.com")
+        res = capture_email(email="lead_test_real@example.com", ghost_email=ghost_email)
         self.assertEqual(res["status"], "success")
         
         # Verify stored lead
@@ -46,7 +46,7 @@ class TestLeadCapture(FrappeTestCase):
         self.assertEqual(lead.conversion_reminder_sent, 0)
         
         # Update email
-        capture_email(ghost_email, "lead_test_real_new@example.com")
+        capture_email(email="lead_test_real_new@example.com", ghost_email=ghost_email)
         lead.reload()
         self.assertEqual(lead.captured_email, "lead_test_real_new@example.com")
 
@@ -55,7 +55,7 @@ class TestLeadCapture(FrappeTestCase):
         self.settings.save()
         
         with self.assertRaises(frappe.PermissionError):
-            capture_email("some_ghost@guest.local", "test@test.com")
+            capture_email(email="test@test.com", ghost_email="some_ghost@guest.local")
 
     def test_lead_conversion_status_update(self):
         # Create ghost user
@@ -63,7 +63,7 @@ class TestLeadCapture(FrappeTestCase):
         ghost_email = session["user"]
         
         # Capture lead
-        capture_email(ghost_email, "lead_test_real_conv@example.com")
+        capture_email(email="lead_test_real_conv@example.com", ghost_email=ghost_email)
         
         # Convert user
         convert_to_real_user(ghost_email, "lead_test_real_conv@example.com")
@@ -87,7 +87,7 @@ class TestLeadCapture(FrappeTestCase):
         ghost_email = session["user"]
         
         # Capture email
-        capture_email(ghost_email, "lead_test_rem_real@example.com")
+        capture_email(email="lead_test_rem_real@example.com", ghost_email=ghost_email)
         
         lead = frappe.get_last_doc("Ghost Lead", {"ghost_email": ghost_email})
         

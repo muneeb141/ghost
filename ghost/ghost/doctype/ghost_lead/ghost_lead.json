@@ -1,18 +1,28 @@
 {
     "actions": [],
     "allow_rename": 1,
-    "autoname": "field:captured_email",
+    "autoname": "naming_series:",
     "creation": "2026-08-02 22:59:23.608547",
     "doctype": "DocType",
     "editable_grid": 1,
     "engine": "InnoDB",
     "field_order": [
+        "naming_series",
         "ghost_email",
         "captured_email",
         "status",
         "conversion_reminder_sent"
     ],
     "fields": [
+        {
+            "default": "GLD-.YYYY.-.MM.-.DD.-.###.",
+            "fieldname": "naming_series",
+            "fieldtype": "Select",
+            "hidden": 1,
+            "label": "Naming Series",
+            "options": "GLD-.YYYY.-.MM.-.DD.-.###.",
+            "reqd": 1
+        },
         {
             "fieldname": "ghost_email",
             "fieldtype": "Link",
@@ -54,7 +64,7 @@
     "modified_by": "Administrator",
     "module": "Ghost",
     "name": "Ghost Lead",
-    "naming_rule": "Random",
+    "naming_rule": "By \"Naming Series\" field",
     "owner": "Administrator",
     "permissions": [
         {

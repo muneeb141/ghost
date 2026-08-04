@@ -13,3 +13,4 @@ build/
 ghost/tests/test_full_suite.py
 AGENTS.md
 GHOST_AI_DEVELOPMENT_PLAN.md
+GHOST_DOCUMENTATION_PLAN.md
