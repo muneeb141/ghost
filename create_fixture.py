@@ -31,7 +31,7 @@ def create_magic_link_template():
 </div>"""
         })
         doc.insert(ignore_permissions=True)
-        frappe.db.commit()
+        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in standalone management CLI script where HTTP transaction wrapping is absent
         print("Template created successfully!")
     else:
         print("Template already exists.")

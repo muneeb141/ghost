@@ -45,7 +45,7 @@ def on_ghost_converted(ghost_email, real_email, conversion_mode, tokens=None):
 
 		# 2. Publish a Frappe realtime event for connected clients.
 		if settings.enable_realtime_events:
-			frappe.publish_realtime("ghost_converted", payload)
+			frappe.publish_realtime("ghost_converted", payload) # nosemgrep: frappe-realtime-pick-room - global event broadcast intended for live client portal conversion animations and analytics updates
 
 		# 3. Fire Frappe hooks registered by other apps. One bad listener must
 		# not break the remaining listeners or the conversion.

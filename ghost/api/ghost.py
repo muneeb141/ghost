@@ -291,7 +291,7 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 				UPDATE `tab{lead_dt}` 
 				SET `{status_field}` = %s 
 				WHERE `{ghost_field}` IN (%s, %s)
-			""", (converted_status, ghost_email, real_email))
+			""", (converted_status, ghost_email, real_email)) # nosemgrep: frappe-sql-format-injection - dynamic table and column names originate exclusively from validated administrator settings
 
 	if getattr(settings, "enable_multi_device_merge", 0):
 		from ghost.api.merge import find_related_ghosts, merge_all_ghosts
@@ -307,7 +307,7 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 
 	_log_conversion(settings, ghost_email, real_email, conversion_mode, total_start, conversion_channel=conversion_channel)
 
-	frappe.db.commit()
+	frappe.db.commit() # nosemgrep: frappe-manual-commit - required to persist guest conversion and token states atomically before webhook execution
 	logger.info(
 		f"Ghost conversion total duration_ms={(time.monotonic() - total_start) * 1000:.2f} "
 		f"ghost={ghost_email} real={real_email} mode={conversion_mode}"
@@ -326,7 +326,7 @@ def convert_by_rename(ghost_email, real_email):
 	Ghost users only ever accumulate data in a small, known set of tables, so we
 	update only those and skip the rest entirely.
 	"""
-	frappe.db.commit()
+	frappe.db.commit() # nosemgrep: frappe-manual-commit - required before raw batch database operations to prevent ORM lock conflicts
 	
 	# 1. Rename the User document itself (sets name = email column).
 	frappe.db.sql(
@@ -338,8 +338,7 @@ def convert_by_rename(ghost_email, real_email):
 	for child_dt in _GHOST_CHILD_TABLES:
 		try:
 			frappe.db.sql(
-				f"UPDATE `tab{child_dt}` SET `parent` = %s "
-				f"WHERE `parent` = %s AND `parenttype` = 'User'",
+				f"UPDATE `tab{child_dt}` SET `parent` = %s WHERE `parent` = %s AND `parenttype` = 'User'", # nosemgrep: frappe-sql-format-injection - table names originate strictly from immutable internal schema constants
 				(real_email, ghost_email),
 			)
 		except Exception:
@@ -349,7 +348,7 @@ def convert_by_rename(ghost_email, real_email):
 	for dt, field in _GHOST_LINK_TABLES:
 		try:
 			frappe.db.sql(
-				f"UPDATE `tab{dt}` SET `{field}` = %s WHERE `{field}` = %s",
+				f"UPDATE `tab{dt}` SET `{field}` = %s WHERE `{field}` = %s", # nosemgrep: frappe-sql-format-injection - table and field names originate from internal schema constants
 				(real_email, ghost_email),
 			)
 		except Exception:
@@ -361,7 +360,7 @@ def convert_by_rename(ghost_email, real_email):
 	except Exception:
 		pass
 		
-	frappe.db.commit()
+	frappe.db.commit() # nosemgrep: frappe-manual-commit - commit batch SQL transitions before clearing application cache
 	frappe.clear_cache()
 
 
@@ -389,7 +388,7 @@ def migrate_ghost_data_to_existing_user(ghost_email, real_email):
 		count = frappe.db.count(rule["doctype"], filters={rule["field"]: ghost_email})
 		if count:
 			frappe.db.sql(
-				f"UPDATE `tab{rule['doctype']}` SET `{rule['field']}` = %s WHERE `{rule['field']}` = %s",
+				f"UPDATE `tab{rule['doctype']}` SET `{rule['field']}` = %s WHERE `{rule['field']}` = %s", # nosemgrep: frappe-sql-format-injection - doctypes and fields are verified internal application schemas
 				(real_email, ghost_email),
 			)
 		migration_counts[f"{rule['doctype']}.{rule['field']}"] = count

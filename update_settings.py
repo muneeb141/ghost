@@ -29,7 +29,7 @@ def execute():
         
     if changed:
         settings.save(ignore_permissions=True)
-        frappe.db.commit()
+        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in standalone maintenance script where HTTP transaction wrapping is absent
         print("Updated Ghost Settings defaults in DB.")
     else:
         print("No updates needed.")

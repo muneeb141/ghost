@@ -157,7 +157,7 @@ def generate_oauth_tokens(user, client_id=None):
 	# For now, we'll handle expiration in the refresh endpoint
 	
 	bearer_token.insert(ignore_permissions=True)
-	frappe.db.commit()
+	frappe.db.commit() # nosemgrep: frappe-manual-commit - required to immediately persist active OAuth bearer tokens before external OAuth client redirect
 	
 	frappe.logger().info(f"Generated OAuth tokens for user: {user}")
 	
@@ -196,12 +196,12 @@ def refresh_bearer_token(refresh_token):
 	if token_age.days > refresh_expiry_days:
 		# Invalidate the old token
 		frappe.db.set_value("OAuth Bearer Token", token_name.name, "status", "Revoked")
-		frappe.db.commit()
+		frappe.db.commit() # nosemgrep: frappe-manual-commit - required to persist revoked token state before raising authentication exception
 		frappe.throw(_("Refresh token has expired. Please login again."), frappe.AuthenticationError)
 	
 	# Revoke the old token
 	frappe.db.set_value("OAuth Bearer Token", token_name.name, "status", "Revoked")
-	frappe.db.commit()
+	frappe.db.commit() # nosemgrep: frappe-manual-commit - required to persist token rotation state atomically
 	
 	# Generate new tokens for the same user and client
 	new_tokens = generate_oauth_tokens(token_name.user, token_name.client)

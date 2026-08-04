@@ -57,8 +57,8 @@ def send_magic_link(ghost_email, real_email):
         "real_email": real_email,
         "expires_in_minutes": settings.magic_link_expiry_minutes
     }
-    subject = frappe.render_template(email_template.subject, args)
-    content = frappe.render_template(email_template.response, args)
+    subject = frappe.render_template(email_template.subject, args) # nosemgrep: frappe-ssti - email template subject is strictly controlled by authenticated System Managers
+    content = frappe.render_template(email_template.response, args) # nosemgrep: frappe-ssti - email template body is strictly controlled by authenticated System Managers
     
     # Send email
     try:

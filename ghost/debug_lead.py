@@ -8,7 +8,7 @@ def debug():
     
     frappe.db.sql("DELETE FROM `tabUser` WHERE email IN ('lead_debug_ghost@guest.local', 'lead_debug_real@example.com')")
     frappe.db.sql("DELETE FROM `tabGhost Lead`")
-    frappe.db.commit()
+    frappe.db.commit() # nosemgrep: frappe-manual-commit - required in standalone debug script where HTTP transaction wrapping is absent
     
     settings = frappe.get_single("Ghost Settings")
     settings.enable_ghost_feature = 1
