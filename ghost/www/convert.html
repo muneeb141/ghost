@@ -1,0 +1,210 @@
+{% extends "templates/base.html" %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+
+{% if settings.magic_link_css %}
+<style>{{ settings.magic_link_css }}</style>
+{% endif %}
+
+{% if settings.magic_link_html %}
+    {{ settings.magic_link_html }}
+{% else %}
+<style>
+    /* Default Stunning UI */
+    :root {
+        --bg-primary: #0a0a0f;
+        --bg-card: rgba(17, 17, 27, 0.8);
+        --bg-card-hover: rgba(22, 22, 35, 0.9);
+        --border: rgba(255, 255, 255, 0.06);
+        --border-active: rgba(99, 102, 241, 0.4);
+        --text-primary: #e8e8ed;
+        --text-secondary: #8b8b9e;
+        --accent: #6366f1;
+        --accent-glow: rgba(99, 102, 241, 0.15);
+        --success: #22c55e;
+        --error: #ef4444;
+        --radius: 16px;
+        --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-primary) !important;
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* Ambient background */
+    body::before {
+        content: '';
+        position: fixed;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
+                    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
+        z-index: -1;
+        animation: ambientShift 20s ease-in-out infinite;
+    }
+
+    @keyframes ambientShift {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        33% { transform: translate(-2%, 1%) rotate(1deg); }
+        66% { transform: translate(1%, -1%) rotate(-1deg); }
+    }
+
+    .magic-link-container {
+        min-height: calc(100vh - 120px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .magic-link-card {
+        background: var(--bg-card);
+        padding: 3.5rem 2.5rem;
+        border-radius: var(--radius);
+        box-shadow: 0 0 40px -10px var(--accent-glow);
+        max-width: 480px;
+        width: 100%;
+        text-align: center;
+        border: 1px solid var(--border-active);
+        backdrop-filter: blur(20px);
+    }
+
+    .magic-link-title {
+        font-weight: 800;
+        font-size: 1.875rem;
+        background: linear-gradient(135deg, #e8e8ed 0%, #8b8b9e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+        letter-spacing: -0.025em;
+    }
+
+    .magic-link-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.05rem;
+        margin-bottom: 2.5rem;
+        line-height: 1.6;
+    }
+
+    .magic-link-btn {
+        display: inline-block;
+        width: 100%;
+        padding: 1rem 1.5rem;
+        font-size: 1.125rem;
+        font-weight: 600;
+        border-radius: 10px;
+        background-color: var(--accent);
+        color: #FFFFFF;
+        border: none;
+        cursor: pointer;
+        transition: all var(--transition);
+        text-decoration: none;
+    }
+
+    .magic-link-btn:hover {
+        background-color: #4f46e5; /* darker accent */
+        color: #FFFFFF;
+        text-decoration: none;
+        box-shadow: 0 0 20px -5px var(--accent);
+    }
+
+    .magic-link-btn:active {
+        transform: scale(0.98);
+    }
+
+    .magic-link-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+</style>
+
+<div class="magic-link-container">
+    <div class="magic-link-card">
+        {% if is_valid %}
+            <div id="confirm-view">
+                <h3 class="magic-link-title">{{ _("Verify Your Email") }}</h3>
+                <p class="magic-link-subtitle">{{ _("Click the button below to securely verify your email and convert your account.") }}</p>
+                <button id="btn-confirm" class="magic-link-btn">{{ _("Verify & Convert") }}</button>
+                <p id="error-msg" style="color: var(--error); margin-top: 1rem; display: none; font-weight: 500;"></p>
+            </div>
+            
+            <div id="success-view" style="display: none;">
+                <h3 class="magic-link-title" style="background: var(--success); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{{ _("Account Activated!") }}</h3>
+                <p class="magic-link-subtitle" style="margin-bottom: 1.5rem;">{{ _("Your account has been successfully verified and converted.") }}</p>
+                <p id="welcome-msg" style="font-weight: 600; font-size: 1.1rem; margin-bottom: 2rem; color: var(--text-primary);"></p>
+                <a href="/" class="magic-link-btn">{{ _("Go to Homepage") }}</a>
+            </div>
+
+            <script>
+                document.getElementById('btn-confirm').addEventListener('click', async function() {
+                    const btn = this;
+                    btn.disabled = true;
+                    btn.textContent = 'Verifying...';
+                    
+                    try {
+                        const response = await fetch('/api/method/ghost.api.magic_link.consume_magic_link', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Frappe-CSRF-Token': frappe.csrf_token || ''
+                            },
+                            body: JSON.stringify({ token: "{{ token }}" })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.message && data.message.redirect_url) {
+                            if (data.message.access_token) {
+                                localStorage.setItem("access_token", data.message.access_token);
+                                localStorage.setItem("refresh_token", data.message.refresh_token);
+                            }
+                            window.location.href = data.message.redirect_url;
+                            return;
+                        }
+                        
+                        if (data.message && data.message.status !== 'error') {
+                            document.getElementById('confirm-view').style.display = 'none';
+                            document.getElementById('success-view').style.display = 'block';
+                            
+                            if (data.message.user) {
+                                document.getElementById('welcome-msg').textContent = 'Welcome, ' + data.message.user + '!';
+                            }
+                            
+                            if (data.message.access_token) {
+                                localStorage.setItem("access_token", data.message.access_token);
+                                localStorage.setItem("refresh_token", data.message.refresh_token);
+                            }
+                        } else {
+                            throw new Error(data.message?.error || data._server_messages || "Unknown error");
+                        }
+                    } catch (e) {
+                        btn.disabled = false;
+                        btn.textContent = '{{ _("Verify & Convert") }}';
+                        const errMsg = document.getElementById('error-msg');
+                        errMsg.textContent = e.message;
+                        errMsg.style.display = 'block';
+                    }
+                });
+            </script>
+        {% else %}
+            <h3 class="magic-link-title" style="background: var(--error); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{{ _("Magic Link Failed") }}</h3>
+            <p class="magic-link-subtitle">{{ error_message or _("The link is invalid or has expired.") }}</p>
+            <a href="/login" class="magic-link-btn" style="background-color: var(--border); color: var(--text-primary); margin-top: 1rem;">{{ _("Back to Login") }}</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -7,18 +7,31 @@
         "tab_ghost",
         "enable_ghost_feature",
         "enable_auto_cleanup",
+        "cleanup_batch_size",
         "ghost_role",
         "ghost_email_domain",
+        "column_break_ghost_identity",
         "expiration_days",
+        "enable_fingerprinting",
+        "fingerprint_expiry_days",
         "default_user_role",
         "client_id",
         "section_break_conversion",
         "verify_otp_on_conversion",
+        "section_break_social_login",
+        "enable_social_login",
+        "google_client_id",
+        "section_break_magic_link",
+        "enable_magic_link",
+        "magic_link_expiry_minutes",
+        "magic_link_redirect_url",
+        "magic_link_email_template",
         "tab_otp",
         "expiry_time_minutes",
         "allow_anonymous_otp",
         "sandbox_mode",
         "sandbox_otp",
+        "column_break_otp",
         "max_otp_attempts",
         "otp_length",
         "otp_code_type",
@@ -32,7 +45,35 @@
         "access_token_expiry_seconds",
         "refresh_token_expiry_days",
         "ghost_token_scope",
-        "invalidate_ghost_tokens_on_conversion"
+        "invalidate_ghost_tokens_on_conversion",
+        "tab_break_lead_capture",
+        "enable_lead_capture",
+        "lead_doctype",
+        "lead_email_fieldname",
+        "lead_ghost_fieldname",
+        "column_break_lead",
+        "lead_status_fieldname",
+        "lead_captured_status",
+        "lead_converted_status",
+        "lead_reminder_hours",
+        "lead_reminder_email_template",
+        "section_break_merging",
+        "enable_multi_device_merge",
+        "merge_detection_method",
+        "tab_analytics",
+        "enable_conversion_logging",
+        "conversion_log_retention_days",
+        "enable_analytics_api",
+        "analytics_api_docs",
+        "tab_integrations",
+        "section_break_webhooks",
+        "enable_webhooks",
+        "webhook_url",
+        "webhook_secret",
+        "enable_realtime_events",
+        "tab_magic_link_ui",
+        "magic_link_html",
+        "magic_link_css"
     ],
     "fields": [
         {
@@ -53,6 +94,14 @@
             "label": "Enable Auto Cleanup"
         },
         {
+            "default": "500",
+            "depends_on": "eval:doc.enable_auto_cleanup==1",
+            "description": "Number of ghost users to delete per batch (bulk SQL delete).",
+            "fieldname": "cleanup_batch_size",
+            "fieldtype": "Int",
+            "label": "Cleanup Batch Size"
+        },
+        {
             "default": "Guest",
             "fieldname": "ghost_role",
             "fieldtype": "Link",
@@ -70,6 +119,21 @@
             "fieldname": "expiration_days",
             "fieldtype": "Int",
             "label": "Expiration Days"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, returning anonymous users with the same browser fingerprint will reconnect to their existing ghost session instead of creating a new one.",
+            "fieldname": "enable_fingerprinting",
+            "fieldtype": "Check",
+            "label": "Enable Session Fingerprinting"
+        },
+        {
+            "default": "7",
+            "depends_on": "eval:doc.enable_fingerprinting==1",
+            "description": "How many days to remember a browser fingerprint.",
+            "fieldname": "fingerprint_expiry_days",
+            "fieldtype": "Int",
+            "label": "Fingerprint Expiry Days"
         },
         {
             "description": "Role to assign to new users (Direct Signup) or after conversion (Ghost). If empty, no role changes are made.",
@@ -128,6 +192,81 @@
             "fieldname": "verify_otp_on_conversion",
             "fieldtype": "Check",
             "label": "Verify OTP on Conversion"
+        },
+        {
+            "fieldname": "section_break_social_login",
+            "fieldtype": "Section Break",
+            "label": "Social Login"
+        },
+        {
+            "default": "0",
+            "description": "Allow ghost users to convert via Google Sign-In.",
+            "fieldname": "enable_social_login",
+            "fieldtype": "Check",
+            "label": "Enable Social Login"
+        },
+        {
+            "depends_on": "eval:doc.enable_social_login==1",
+            "description": "Google OAuth Client ID for token verification.",
+            "fieldname": "google_client_id",
+            "fieldtype": "Data",
+            "label": "Google Client ID"
+        },
+        {
+            "fieldname": "section_break_magic_link",
+            "fieldtype": "Section Break",
+            "label": "Magic Link"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, users can receive an email with a clickable link to convert their session.",
+            "fieldname": "enable_magic_link",
+            "fieldtype": "Check",
+            "label": "Enable Magic Link"
+        },
+        {
+            "default": "30",
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "How long the magic link remains valid in minutes.",
+            "fieldname": "magic_link_expiry_minutes",
+            "fieldtype": "Int",
+            "label": "Magic Link Expiry (Minutes)"
+        },
+        {
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "URL to redirect to after successful conversion (e.g., /dashboard).",
+            "fieldname": "magic_link_redirect_url",
+            "fieldtype": "Data",
+            "label": "Magic Link Redirect URL"
+        },
+        {
+            "depends_on": "eval:doc.enable_magic_link==1",
+            "description": "Email Template containing the {{ magic_link }} variable.",
+            "fieldname": "magic_link_email_template",
+            "fieldtype": "Link",
+            "label": "Magic Link Email Template",
+            "options": "Email Template"
+        },
+        {
+            "fieldname": "tab_magic_link_ui",
+            "fieldtype": "Tab Break",
+            "label": "Magic Link UI"
+        },
+        {
+            "description": "Custom HTML to completely override the default Magic Link conversion page UI. You can use Jinja variables like {{ magic_link }} or {{ error_message }} here.",
+            "fieldname": "magic_link_html",
+            "fieldtype": "Code",
+            "label": "Custom HTML",
+            "options": "HTML",
+            "default": ""
+        },
+        {
+            "description": "Custom CSS to inject into the Magic Link conversion page.",
+            "fieldname": "magic_link_css",
+            "fieldtype": "Code",
+            "label": "Custom CSS",
+            "options": "CSS",
+            "default": "{{ settings.magic_link_css }}"
         },
         {
             "fieldname": "tab_otp",
@@ -234,11 +373,190 @@
             "fieldname": "oauth_token_settings_tab",
             "fieldtype": "Tab Break",
             "label": "OAuth Token Settings"
+        },
+        {
+            "fieldname": "tab_break_lead_capture",
+            "fieldtype": "Tab Break",
+            "label": "Lead Capture"
+        },
+        {
+            "default": "0",
+            "description": "Allow capturing a ghost user's email before full conversion.",
+            "fieldname": "enable_lead_capture",
+            "fieldtype": "Check",
+            "label": "Enable Lead Capture"
+        },
+        {
+            "default": "Ghost Lead",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_doctype",
+            "fieldtype": "Link",
+            "label": "Lead DocType",
+            "options": "DocType"
+        },
+        {
+            "default": "captured_email",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_email_fieldname",
+            "fieldtype": "Select",
+            "label": "Email Fieldname",
+            "options": ""
+        },
+        {
+            "default": "ghost_email",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_ghost_fieldname",
+            "fieldtype": "Select",
+            "label": "Ghost Identifier Fieldname",
+            "options": ""
+        },
+        {
+            "default": "status",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_status_fieldname",
+            "fieldtype": "Select",
+            "label": "Status Fieldname",
+            "options": ""
+        },
+        {
+            "default": "Captured",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_captured_status",
+            "fieldtype": "Data",
+            "label": "Captured Status Value"
+        },
+        {
+            "default": "Converted",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "fieldname": "lead_converted_status",
+            "fieldtype": "Data",
+            "label": "Converted Status Value"
+        },
+        {
+            "default": "24",
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "description": "Hours before sending a reminder to convert.",
+            "fieldname": "lead_reminder_hours",
+            "fieldtype": "Int",
+            "label": "Lead Reminder Hours"
+        },
+        {
+            "depends_on": "eval:doc.enable_lead_capture==1",
+            "description": "Email Template for the reminder.",
+            "fieldname": "lead_reminder_email_template",
+            "fieldtype": "Link",
+            "label": "Lead Reminder Email Template",
+            "options": "Email Template"
+        },
+        {
+            "fieldname": "section_break_merging",
+            "fieldtype": "Section Break",
+            "label": "Multi-Device Merging"
+        },
+        {
+            "default": "0",
+            "description": "Automatically merge multiple ghost sessions belonging to the same user upon conversion.",
+            "fieldname": "enable_multi_device_merge",
+            "fieldtype": "Check",
+            "label": "Enable Multi-Device Merge"
+        },
+        {
+            "default": "Lead Email",
+            "depends_on": "eval:doc.enable_multi_device_merge==1",
+            "fieldname": "merge_detection_method",
+            "fieldtype": "Select",
+            "label": "Merge Detection Method",
+            "options": "Lead Email\nFingerprint\nBoth"
+        },
+        {
+            "fieldname": "tab_analytics",
+            "fieldtype": "Tab Break",
+            "label": "Analytics"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, every successful ghost conversion is recorded in the Ghost Conversion Log for analytics.",
+            "fieldname": "enable_conversion_logging",
+            "fieldtype": "Check",
+            "label": "Enable Conversion Logging"
+        },
+        {
+            "default": "90",
+            "depends_on": "eval:doc.enable_conversion_logging==1",
+            "description": "Conversion log entries older than this many days are deleted by the daily cleanup task.",
+            "fieldname": "conversion_log_retention_days",
+            "fieldtype": "Int",
+            "label": "Conversion Log Retention (Days)"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, exposes a REST API for external BI tools to pull conversion analytics.",
+            "fieldname": "enable_analytics_api",
+            "fieldtype": "Check",
+            "label": "Enable Analytics API"
+        },
+        {
+            "depends_on": "eval:doc.enable_analytics_api==1",
+            "fieldname": "analytics_api_docs",
+            "fieldtype": "HTML",
+            "label": "API Docs",
+            "options": "<div style=\"padding: 15px; background: var(--bg-light-gray); border-radius: 8px; border: 1px solid var(--border-color);\"><h5 style=\"margin-top: 0;\">REST API Endpoint</h5><p><code>GET /api/method/ghost.api.analytics.get_conversion_funnel</code></p><p class=\"text-muted text-small\"><strong>Authentication:</strong> Requires token auth (System Manager role).</p></div>"
+        },
+        {
+            "fieldname": "tab_integrations",
+            "fieldtype": "Tab Break",
+            "label": "Integrations"
+        },
+        {
+            "fieldname": "section_break_webhooks",
+            "fieldtype": "Section Break",
+            "label": "Webhooks & Events"
+        },
+        {
+            "default": "0",
+            "description": "If enabled, a signed webhook is POSTed and Frappe hooks are fired on every successful ghost conversion.",
+            "fieldname": "enable_webhooks",
+            "fieldtype": "Check",
+            "label": "Enable Webhooks"
+        },
+        {
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "URL to POST conversion events to (e.g., your CRM or Zapier endpoint).",
+            "fieldname": "webhook_url",
+            "fieldtype": "Data",
+            "label": "Webhook URL"
+        },
+        {
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "Secret used to sign webhook payloads. Receivers verify the X-Ghost-Signature header with HMAC-SHA256.",
+            "fieldname": "webhook_secret",
+            "fieldtype": "Password",
+            "label": "Webhook Secret"
+        },
+        {
+            "default": "0",
+            "depends_on": "eval:doc.enable_webhooks==1",
+            "description": "If enabled, a Frappe realtime event 'ghost_converted' is published on every successful conversion.",
+            "fieldname": "enable_realtime_events",
+            "fieldtype": "Check",
+            "label": "Enable Realtime Events"
+        },
+        {
+            "fieldname": "column_break_ghost_identity",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "column_break_otp",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "column_break_lead",
+            "fieldtype": "Column Break"
         }
     ],
     "issingle": 1,
     "links": [],
-    "modified": "2026-02-23 15:58:00.000000",
+    "modified": "2026-08-02 18:15:00.000000",
     "modified_by": "Administrator",
     "module": "Ghost",
     "name": "Ghost Settings",

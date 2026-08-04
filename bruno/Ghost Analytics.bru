@@ -1,0 +1,35 @@
+meta {
+  name: Ghost Analytics Dashboard Data
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/method/ghost.ghost.page.ghost_analytics.ghost_analytics.get_analytics_data?days=30
+  body: none
+  auth: none
+}
+
+params:query {
+  days: 30
+  ~from_date: 2025-01-01
+  ~to_date: 2026-08-04
+}
+
+headers {
+  Authorization: Bearer {{admin_access_token}}
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:8000
+}
+
+docs {
+  Returns conversion analytics for the Ghost Analytics desk page.
+  Requires a System Manager user's bearer token (set admin_access_token) —
+  ghost tokens are not permitted. Enable conversion logging first via
+  Ghost Settings > Analytics > Enable Conversion Logging.
+  
+  Supports dynamic timeframes by passing 'days' (e.g. 7 or 30) or exact date filters.
+  Returns channel conversion breakdowns (OTP vs Magic Link vs Google), multi-device merge counts, and reminder recovery rates.
+}

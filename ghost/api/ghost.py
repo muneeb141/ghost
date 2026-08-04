@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import random_string, get_url
+from frappe.utils import random_string, get_url, now_datetime
 from frappe.utils.password import rename_password
 import uuid
 import time
@@ -32,7 +32,7 @@ _GHOST_CHILD_TABLES = [
 
 @frappe.whitelist(allow_guest=True)
 @frappe.rate_limiter.rate_limit(limit=100, seconds=3600)
-def create_ghost_session(email=None):
+def create_ghost_session(email=None, fingerprint=None):
 	"""
 	Creates a Ghost User and returns their API Key/Secret + Session details.
 	"""
@@ -43,18 +43,38 @@ def create_ghost_session(email=None):
 	ghost_role = settings.ghost_role or "Guest"
 	domain = settings.ghost_email_domain or "guest.local"
 
-	# Generate Email
+	# Fingerprint matching logic
+	if settings.enable_fingerprinting and fingerprint:
+		expiry_days = settings.fingerprint_expiry_days or 7
+		from frappe.utils import add_days
+		cutoff_date = add_days(now_datetime(), -expiry_days)
+		
+		# Find unexpired fingerprint
+		existing_fp = frappe.db.get_value("Ghost Fingerprint", 
+			{"fingerprint": fingerprint, "last_seen": [">", cutoff_date]}, 
+			["name", "ghost_email"], as_dict=True)
+			
+		if existing_fp and frappe.db.exists("User", existing_fp.ghost_email):
+			# Found a valid matching ghost user!
+			email = existing_fp.ghost_email
+			# Update last seen
+			frappe.db.set_value("Ghost Fingerprint", existing_fp.name, "last_seen", now_datetime())
+			
+			from ghost.api.auth import generate_oauth_tokens
+			tokens = generate_oauth_tokens(email)
+			return {
+				"user": email,
+				"access_token": tokens["access_token"],
+				"refresh_token": tokens["refresh_token"],
+				"expires_in": tokens["expires_in"],
+				"token_type": tokens["token_type"],
+				"message": "Reconnected to existing Ghost session"
+			}
+
+	# Generate Email if not matching/provided
 	if not email:
 		unique_id = str(uuid.uuid4())[:8]
 		email = f"ghost_{unique_id}@{domain}"
-	else:
-		# If email provided, ensure it's not taken, or return existing ghost?
-		# For safety, we enforce generated emails for now unless specified.
-		pass
-
-	if frappe.db.exists("User", email):
-		# Re-use? Or error? For now, assume new session needed.
-		pass
 
 	# Create User
 	user = frappe.new_doc("User")
@@ -73,6 +93,22 @@ def create_ghost_session(email=None):
 	if ghost_role not in [r.role for r in user.roles]:
 		user.add_roles(ghost_role)
 		user.save(ignore_permissions=True)
+
+	# Save Fingerprint if provided and enabled
+	if settings.enable_fingerprinting and fingerprint:
+		fp_name = frappe.db.exists("Ghost Fingerprint", {"fingerprint": fingerprint})
+		if fp_name:
+			frappe.db.set_value("Ghost Fingerprint", fp_name, {
+				"ghost_email": email,
+				"last_seen": now_datetime()
+			})
+		else:
+			frappe.get_doc({
+				"doctype": "Ghost Fingerprint",
+				"fingerprint": fingerprint,
+				"ghost_email": email,
+				"last_seen": now_datetime()
+			}).insert(ignore_permissions=True)
 
 	# Generate OAuth Bearer Tokens instead of API keys
 	from ghost.api.auth import generate_oauth_tokens
@@ -93,7 +129,7 @@ def create_ghost_session(email=None):
 	}
 
 @frappe.whitelist()
-def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None, otp_code=None):
+def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=None, otp_code=None, bypass_otp=False, conversion_channel="OTP"):
 	"""
 	Converts a Ghost User to a Real User using one of two conversion modes:
 	- rename: lightweight rename when target user does not exist
@@ -135,11 +171,15 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 					"expires_in": retry_tokens["expires_in"],
 					"token_type": retry_tokens["token_type"],
 				})
+			_log_conversion(settings, ghost_email, real_email, "already_converted", total_start)
+			if settings.enable_webhooks:
+				from ghost.events import on_ghost_converted
+				on_ghost_converted(ghost_email, real_email, "already_converted", retry_tokens)
 			return retry_response
 		frappe.throw(_("Ghost user {} does not exist").format(ghost_email))
 
 	otp_start = time.monotonic()
-	if settings.verify_otp_on_conversion:
+	if settings.verify_otp_on_conversion and not bypass_otp:
 		if not otp_code:
 			frappe.throw(_("OTP Code is required for conversion."))
 
@@ -163,6 +203,22 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 	original_user = frappe.session.user
 	frappe.set_user("Administrator")
 	try:
+		token_invalidation_start = time.monotonic()
+		if settings.invalidate_ghost_tokens_on_conversion:
+			frappe.db.sql(
+				"""
+				UPDATE `tabOAuth Bearer Token`
+				SET status = 'Revoked'
+				WHERE user = %s AND status = 'Active'
+			""",
+				(ghost_email,),
+			)
+			logger.info(f"Invalidated ghost tokens for {ghost_email}")
+		logger.info(
+			f"Ghost conversion token invalidation duration_ms={(time.monotonic() - token_invalidation_start) * 1000:.2f} "
+			f"ghost={ghost_email} real={real_email}"
+		)
+
 		branch_start = time.monotonic()
 		if target_exists:
 			migration_stats = migrate_ghost_data_to_existing_user(ghost_email, real_email)
@@ -195,22 +251,6 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 		f"ghost={ghost_email} real={real_email} mode={conversion_mode}"
 	)
 
-	token_invalidation_start = time.monotonic()
-	if settings.invalidate_ghost_tokens_on_conversion:
-		frappe.db.sql(
-			"""
-			UPDATE `tabOAuth Bearer Token`
-			SET status = 'Revoked'
-			WHERE user = %s AND status = 'Active'
-		""",
-			(ghost_email,),
-		)
-		logger.info(f"Invalidated ghost tokens for {ghost_email}")
-	logger.info(
-		f"Ghost conversion token invalidation duration_ms={(time.monotonic() - token_invalidation_start) * 1000:.2f} "
-		f"ghost={ghost_email} real={real_email}"
-	)
-
 	token_generation_start = time.monotonic()
 	try:
 		new_tokens = generate_oauth_tokens(real_email)
@@ -240,11 +280,41 @@ def convert_to_real_user(ghost_email, real_email, first_name=None, last_name=Non
 			"token_type": new_tokens["token_type"]
 		})
 
+	if getattr(settings, "enable_lead_capture", 0):
+		lead_dt = settings.lead_doctype or "Ghost Lead"
+		status_field = settings.lead_status_fieldname or "status"
+		converted_status = settings.lead_converted_status or "Converted"
+		ghost_field = settings.lead_ghost_fieldname or "ghost_email"
+		
+		if status_field:
+			frappe.db.sql(f"""
+				UPDATE `tab{lead_dt}` 
+				SET `{status_field}` = %s 
+				WHERE `{ghost_field}` IN (%s, %s)
+			""", (converted_status, ghost_email, real_email))
+
+	if getattr(settings, "enable_multi_device_merge", 0):
+		from ghost.api.merge import find_related_ghosts, merge_all_ghosts
+		related = find_related_ghosts(real_email)
+		# exclude the current one if it was somehow in there
+		related = [g for g in related if g != ghost_email]
+		
+		if related:
+			merged_count = merge_all_ghosts(related, real_email)
+			if merged_count > 0:
+				response["merged_ghosts"] = related
+				response["merged_count"] = merged_count
+
+	_log_conversion(settings, ghost_email, real_email, conversion_mode, total_start, conversion_channel=conversion_channel)
+
 	frappe.db.commit()
 	logger.info(
 		f"Ghost conversion total duration_ms={(time.monotonic() - total_start) * 1000:.2f} "
 		f"ghost={ghost_email} real={real_email} mode={conversion_mode}"
 	)
+	if settings.enable_webhooks:
+		from ghost.events import on_ghost_converted
+		on_ghost_converted(ghost_email, real_email, conversion_mode, new_tokens)
 	return response
 
 
@@ -349,7 +419,38 @@ def apply_user_profile_and_roles(user, settings, first_name=None, last_name=None
 
 	user.set("roles", new_roles)
 
-	if first_name and (not conservative_name_update or not user.first_name):
+	if first_name and (not conservative_name_update or not user.first_name or user.first_name == "Ghost"):
 		user.first_name = first_name
-	if last_name and (not conservative_name_update or not user.last_name):
+	if last_name and (not conservative_name_update or not user.last_name or user.last_name == "User"):
 		user.last_name = last_name
+
+
+def _log_conversion(settings, ghost_email, real_email, conversion_mode, total_start, conversion_channel="OTP"):
+	"""Record a successful conversion in Ghost Conversion Log.
+
+	Controlled by the enable_conversion_logging toggle in Ghost Settings.
+	Must never break the conversion flow — any failure is logged and swallowed.
+	"""
+	if not getattr(settings, "enable_conversion_logging", 0):
+		return
+	try:
+		client_info = None
+		try:
+			if frappe.request and frappe.request.headers:
+				client_info = frappe.request.headers.get("User-Agent")
+		except Exception:
+			# No request context (tests, background jobs) — client info stays empty.
+			pass
+
+		frappe.get_doc({
+			"doctype": "Ghost Conversion Log",
+			"ghost_email": ghost_email,
+			"real_email": real_email,
+			"conversion_mode": conversion_mode,
+			"conversion_channel": conversion_channel,
+			"conversion_duration_ms": (time.monotonic() - total_start) * 1000,
+			"converted_at": now_datetime(),
+			"client_info": client_info,
+		}).insert(ignore_permissions=True)
+	except Exception as e:
+		frappe.log_error(f"Failed to log ghost conversion {ghost_email} -> {real_email}: {str(e)}")

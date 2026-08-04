@@ -58,3 +58,7 @@ class GhostSettings(Document):
 		# Sandbox defaults
 		if not getattr(self, "sandbox_otp", None):
 			self.sandbox_otp = "000141"
+
+		# Analytics defaults
+		if not getattr(self, "conversion_log_retention_days", None):
+			self.conversion_log_retention_days = 90

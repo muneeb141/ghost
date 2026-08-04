@@ -1,0 +1,11 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "name": "Ghost Magic Link",
+  "__islocal": 1,
+  "subject": "Activate Your Account \ud83d\ude80",
+  "use_html": 0,
+  "response": "Welcome!\n\nYou requested a magic link to verify your email and securely convert your guest session into a permanent account. \n\nClick here to activate your account: {{ magic_link }}\n\nThis magic link will safely expire in {{ expires_in_minutes }} minutes.\n\nIf you didn't request this link, you can safely ignore this email."
+ }
+]

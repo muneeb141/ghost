@@ -1,34 +1,36 @@
-// Copyright (c) 2026, Muneeb Mohammed and contributors
-// For license information, please see license.txt
+frappe.ui.form.on('Ghost Settings', {
+	refresh: function(frm) {
+		frm.trigger('lead_doctype');
+	},
+	lead_doctype: function(frm) {
+		if (frm.doc.lead_doctype) {
+			frappe.model.with_doctype(frm.doc.lead_doctype, function() {
+				var fields = frappe.meta.get_docfields(frm.doc.lead_doctype);
+				var options = fields
+					.filter(df => !['Section Break', 'Column Break', 'Tab Break', 'HTML'].includes(df.fieldtype))
+					.map(df => ({
+						label: `${df.label} (${df.fieldname})`,
+						value: df.fieldname
+					}));
 
-frappe.ui.form.on("Ghost Settings", {
-    /**
-     * Called on form load and refresh.
-     * Enforces that sandbox_otp is always read-only and
-     * pre-fills it if the field is empty.
-     */
-    refresh(frm) {
-        frm.set_df_property("sandbox_otp", "read_only", 1);
+				// Also add 'owner' as it's a standard field not always explicitly in get_docfields
+				options.push({label: 'Owner (owner)', value: 'owner'});
+				options.push({label: 'Name (name)', value: 'name'});
+				
+				// Sort alphabetically by label
+				options.sort((a, b) => a.label.localeCompare(b.label));
+				
+				// Add a blank option at the top
+				options.unshift('');
 
-        if (frm.doc.sandbox_mode && !frm.doc.sandbox_otp) {
-            frm.set_value("sandbox_otp", "000141");
-        }
-    },
-
-    /**
-     * Reacts to the sandbox_mode checkbox toggle.
-     * When enabled → auto-fill the fixed OTP.
-     * When disabled → clear the field (optional, keeps UI clean).
-     */
-    sandbox_mode(frm) {
-        if (frm.doc.sandbox_mode) {
-            frm.set_value("sandbox_otp", "000141");
-            frappe.show_alert({
-                message: __("Sandbox Mode enabled. Use OTP <strong>000141</strong> for authentication."),
-                indicator: "orange",
-            }, 5);
-        } else {
-            frm.set_value("sandbox_otp", "");
-        }
-    },
+				frm.set_df_property('lead_email_fieldname', 'options', options);
+				frm.set_df_property('lead_ghost_fieldname', 'options', options);
+				frm.set_df_property('lead_status_fieldname', 'options', options);
+			});
+		} else {
+			frm.set_df_property('lead_email_fieldname', 'options', []);
+			frm.set_df_property('lead_ghost_fieldname', 'options', []);
+			frm.set_df_property('lead_status_fieldname', 'options', []);
+		}
+	}
 });

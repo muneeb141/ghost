@@ -145,17 +145,17 @@ class TestGhostAuth(unittest.TestCase):
 			user.first_name = "Refresh"
 			user.save(ignore_permissions=True)
 
-		client_id = "test_refresh_client"
-		if not frappe.db.exists("OAuth Client", client_id):
+		client = frappe.db.get_value("OAuth Client", {"app_name": "Test Refresh App"}, "name")
+		if not client:
 			c = frappe.new_doc("OAuth Client")
-			c.client_id = client_id
 			c.app_name = "Test Refresh App"
 			c.skat = "1"
 			c.default_redirect_uri = "http://localhost"
 			c.redirect_uris = "http://localhost"
 			c.save(ignore_permissions=True)
+			client = c.name
 
-		tokens = generate_oauth_tokens(email, client_id)
+		tokens = generate_oauth_tokens(email, client)
 		self.assertIn("refresh_token", tokens)
 
 		response = refresh_bearer_token(tokens["refresh_token"])

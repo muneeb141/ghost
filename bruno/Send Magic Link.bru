@@ -1,0 +1,18 @@
+meta {
+  name: Send Magic Link
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.magic_link.send_magic_link
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "ghost_email": "ghost_USERID@guest.local",
+    "real_email": "user@example.com"
+  }
+}

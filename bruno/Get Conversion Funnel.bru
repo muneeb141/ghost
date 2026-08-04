@@ -1,0 +1,34 @@
+meta {
+  name: Get Conversion Funnel
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/method/ghost.api.analytics.get_conversion_funnel?days=30
+  body: none
+  auth: none
+}
+
+params:query {
+  days: 30
+  ~from_date: 2025-01-01
+  ~to_date: 2026-08-04
+}
+
+headers {
+  Authorization: token {{api_key}}:{{api_secret}}
+}
+
+docs {
+  Requires System Manager role.
+  Requires 'enable_analytics_api' to be checked in Ghost Settings.
+  
+  Returns comprehensive conversion funnel metrics including:
+  - Total sessions, conversions, conversion rate & average duration
+  - Breakdowns by conversion channel (OTP, Magic Link, Google, etc.)
+  - Breakdowns by conversion mode (rename, manual_migration)
+  - Lead recovery stats (reminded leads vs recovered leads)
+  
+  Supports filtering by 'days' (e.g. 7 or 30) or exact date ranges using 'from_date' and 'to_date'.
+}
