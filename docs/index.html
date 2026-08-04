@@ -540,6 +540,14 @@ bench --site your-site.localhost install-app ghost</code></pre>
         </tbody>
       </table>
 
+      <div class="alert" style="margin-top: 2rem; border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08);">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">
+          <h5 style="color: #fbbf24;">Caution: Sandbox Mode & Production Readiness</h5>
+          <p>When <strong>Sandbox Mode (<code>sandbox_mode = 1</code>)</strong> is enabled, real OTP database document creation (<code>tabOTP</code>), SMS delivery, and Email transmission hooks are intentionally bypassed to allow rapid UI testing. Instead, Ghost simulates verification by universally accepting the configured static PIN (default: <code>000141</code>). While ideal for local UX prototypes and frontend development, enabling Sandbox Mode on testing or live site databases will cause external integrations and test suites expecting real database token records to fail or exhibit simulated behavior. Always ensure Sandbox Mode is strictly disabled (<code>0</code>) in production and staging environments.</p>
+        </div>
+      </div>
+
       <h3 id="settings-oauth">Tab 3: OAuth Token Settings</h3>
       <p>Establishes rigorous security parameters over temporary access tokens, refresh token longevity schedules, and
         automatic cryptographic cleanup policies upon conversion.</p>

@@ -20,8 +20,18 @@ class GhostSettings(Document):
 			frappe.throw(_("Refresh Token Expiry should be at least 1 day."))
 
 		# Sandbox mode validation
-		if getattr(self, "sandbox_mode", 0) and not getattr(self, "sandbox_otp", None):
-			frappe.throw(_("Sandbox OTP Code is required when Sandbox Mode is enabled."))
+		if getattr(self, "sandbox_mode", 0):
+			if not getattr(self, "sandbox_otp", None):
+				frappe.throw(_("Sandbox OTP Code is required when Sandbox Mode is enabled."))
+			
+			# Security Guardrail: Proactively warn administrators when enabling Sandbox Mode outside of CI test runs
+			if not frappe.flags.in_test and not getattr(frappe.local, "flags", {}).get("in_test"):
+				frappe.msgprint(
+					msg=_("⚠️ <b>Caution: Sandbox Mode Active</b><br>Real OTP database document creation (<code>tabOTP</code>), SMS deliveries, and SMTP email transmission hooks are entirely bypassed.<br>Ensure Sandbox Mode is disabled before promoting to staging/production or executing live automated integrations."),
+					title=_("Security Guardrail Notice"),
+					indicator="orange",
+					alert=True
+				)
 	
 	def set_default_values(self):
 		"""Set default values for OAuth settings if not already set"""
