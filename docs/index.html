@@ -1,733 +1,1262 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghost — Interactive Static Demo</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #0a0a0f;
-            --bg-card: rgba(17, 17, 27, 0.8);
-            --bg-card-hover: rgba(22, 22, 35, 0.9);
-            --border: rgba(255, 255, 255, 0.06);
-            --border-active: rgba(99, 102, 241, 0.4);
-            --text-primary: #e8e8ed;
-            --text-secondary: #8b8b9e;
-            --text-muted: #5a5a6e;
-            --accent: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.15);
-            --success: #22c55e;
-            --success-bg: rgba(34, 197, 94, 0.08);
-            --error: #ef4444;
-            --error-bg: rgba(239, 68, 68, 0.08);
-            --warning: #f59e0b;
-            --warning-bg: rgba(245, 158, 11, 0.08);
-            --code-bg: rgba(0, 0, 0, 0.4);
-            --radius: 16px;
-            --radius-sm: 10px;
-            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* Ambient background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
-                        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
-            z-index: -1;
-            animation: ambientShift 20s ease-in-out infinite;
-        }
-
-        @keyframes ambientShift {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(-2%, 1%) rotate(1deg); }
-            66% { transform: translate(1%, -1%) rotate(-1deg); }
-        }
-
-        /* Header */
-        .header {
-            padding: 40px 0 20px;
-            text-align: center;
-            position: relative;
-        }
-
-        .header-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 14px;
-            border-radius: 100px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--warning);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .header h1 {
-            font-size: 40px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #e8e8ed 0%, #8b8b9e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -1px;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: var(--text-secondary);
-            font-size: 16px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        /* Container */
-        .container {
-            max-width: 720px;
-            margin: 0 auto;
-            padding: 20px 24px 60px;
-        }
-
-        /* Flow connector */
-        .flow-line {
-            width: 2px;
-            height: 32px;
-            background: linear-gradient(to bottom, var(--border-active), var(--border));
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .flow-line::after {
-            content: '';
-            position: absolute;
-            bottom: -3px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent);
-            opacity: 0.4;
-        }
-
-        /* Step Cards */
-        .step {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 28px;
-            transition: all var(--transition);
-            position: relative;
-            overflow: hidden;
-            backdrop-filter: blur(20px);
-        }
-
-        .step::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--border-active), transparent);
-            opacity: 0;
-            transition: opacity var(--transition);
-        }
-
-        .step:hover {
-            border-color: var(--border-active);
-            background: var(--bg-card-hover);
-        }
-
-        .step:hover::before { opacity: 1; }
-
-        .step.completed {
-            border-color: rgba(34, 197, 94, 0.2);
-        }
-
-        .step-header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 14px;
-        }
-
-        .step-number {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-            background: var(--accent-glow);
-            color: var(--accent);
-            border: 1px solid rgba(99, 102, 241, 0.2);
-            flex-shrink: 0;
-            transition: all var(--transition);
-        }
-
-        .step.completed .step-number {
-            background: var(--success-bg);
-            color: var(--success);
-            border-color: rgba(34, 197, 94, 0.2);
-        }
-
-        .step-number .check {
-            display: none;
-        }
-
-        .step.completed .step-number .num { display: none; }
-        .step.completed .step-number .check { display: block; }
-
-        .step-title {
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: -0.3px;
-        }
-
-        .step-desc {
-            color: var(--text-secondary);
-            font-size: 13px;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 11px 22px;
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            border: none;
-            transition: all var(--transition);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-            box-shadow: 0 4px 14px -3px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-primary:hover {
-            background: #5558e6;
-            box-shadow: 0 6px 20px -3px rgba(99, 102, 241, 0.5);
-            transform: translateY(-1px);
-        }
-
-        .btn-primary:active { transform: translateY(0); }
-
-        .btn-primary:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-
-        /* Fake Google Button */
-        .fake-google-btn {
-            background: white;
-            color: #3c4043;
-            border: 1px solid #dadce0;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 16px;
-            border-radius: 4px;
-            font-family: 'Google Sans', Roboto, Arial, sans-serif;
-            font-weight: 500;
-            font-size: 14px;
-            cursor: pointer;
-            width: 100%;
-            max-width: 250px;
-            transition: background 0.2s;
-        }
-        
-        .fake-google-btn:hover { background: #f8f9fa; }
-        
-        .fake-google-btn img {
-            width: 18px;
-            height: 18px;
-        }
-
-        /* Input */
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 4px;
-        }
-
-        .input-field {
-            flex: 1;
-            padding: 11px 16px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            background: rgba(0, 0, 0, 0.3);
-            color: var(--text-primary);
-            font-size: 14px;
-            font-family: inherit;
-            outline: none;
-            transition: all var(--transition);
-        }
-
-        .input-field::placeholder {
-            color: var(--text-muted);
-        }
-
-        .input-field:focus {
-            border-color: var(--border-active);
-            box-shadow: 0 0 0 3px var(--accent-glow);
-        }
-
-        /* Response display */
-        .response-panel {
-            margin-top: 16px;
-            border-radius: var(--radius-sm);
-            overflow: hidden;
-            border: 1px solid var(--border);
-            display: none;
-        }
-
-        .response-panel.visible { display: block; }
-
-        .response-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 14px;
-            background: rgba(0, 0, 0, 0.3);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .response-bar .label {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-        }
-
-        .status-badge {
-            font-size: 11px;
-            font-weight: 600;
-            padding: 3px 10px;
-            border-radius: 100px;
-            letter-spacing: 0.3px;
-        }
-
-        .status-badge.success {
-            background: var(--success-bg);
-            color: var(--success);
-            border: 1px solid rgba(34, 197, 94, 0.15);
-        }
-
-        .status-badge.loading {
-            background: var(--warning-bg);
-            color: var(--warning);
-            border: 1px solid rgba(245, 158, 11, 0.15);
-        }
-
-        .response-body {
-            padding: 14px;
-            background: var(--code-bg);
-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-            font-size: 12.5px;
-            line-height: 1.7;
-            color: var(--text-secondary);
-            max-height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-
-        .response-body .key { color: #a78bfa; }
-        .response-body .string { color: #34d399; }
-        .response-body .boolean { color: #fb923c; }
-
-        /* State data pills */
-        .state-pills {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-        }
-
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 500;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            font-family: 'SF Mono', 'Fira Code', monospace;
-        }
-
-        .pill .label {
-            color: var(--text-muted);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        /* Spinner */
-        .spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255,255,255,0.2);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Frictionless conversion section */
-        .convert-section {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid var(--border);
-        }
-
-        .convert-section .section-label {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .form-row .input-field { flex: 1; }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-
-        .footer a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        /* Responsive */
-        @media (max-width: 640px) {
-            .container { padding: 16px; }
-            .header h1 { font-size: 28px; }
-            .input-group { flex-direction: column; }
-            .form-row { flex-direction: column; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghost — Developer & Techno-Functional Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-    <div class="container">
-        <div class="header">
-            <div class="header-badge">
-                <span class="dot" style="background:var(--warning)"></span>
-                Interactive MOCK Demo
-            </div>
-            <h1>Ghost API</h1>
-            <p>Experience the full ghost-to-user conversion lifecycle in this interactive simulation.</p>
-        </div>
+  <!-- Mobile Toggle Button -->
+  <button class="menu-toggle" id="menuToggle">☰ Menu</button>
 
-        <!-- Step 1: Ghost Session -->
-        <div class="step" id="step-1">
-            <div class="step-header">
-                <div class="step-number">
-                    <span class="num">1</span>
-                    <span class="check">✓</span>
-                </div>
-                <div class="step-title">Create Ghost Session</div>
-            </div>
-            <div class="step-desc">
-                Simulate an anonymous visitor landing on your site. This creates a temporary identity with an API token — no sign-up needed.
-            </div>
-            <button class="btn btn-primary" id="btn-session" onclick="mockCreateSession()">
-                Initialize Session
-            </button>
-            <div class="response-panel" id="resp-1">
-                <div class="response-bar">
-                    <span class="label">Mock Response</span>
-                    <span class="status-badge" id="status-1"></span>
-                </div>
-                <div class="response-body" id="body-1"></div>
-            </div>
-            <div class="state-pills" id="state-1" style="display:none;">
-                <div class="pill"><span class="label">ghost</span> <span id="pill-ghost">—</span></div>
-                <div class="pill"><span class="label">token</span> <span id="pill-token">—</span></div>
-            </div>
-        </div>
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <a href="#" class="brand">
+      <span class="brand-icon">👻</span>
+      <span>Ghost</span>
+      <span class="brand-badge">v1.0.0</span>
+    </a>
 
-        <div class="flow-line"></div>
-
-        <!-- Step 2: Capture Lead -->
-        <div class="step" id="step-2">
-            <div class="step-header">
-                <div class="step-number">
-                    <span class="num">2</span>
-                    <span class="check">✓</span>
-                </div>
-                <div class="step-title">Capture Lead Email</div>
-            </div>
-            <div class="step-desc">
-                The anonymous user enters their email in a newsletter, checkout, or interest form. The system silently links it to their ghost session for lead recovery.
-            </div>
-            <div class="input-group">
-                <input type="email" class="input-field" id="input-email" placeholder="user@example.com" />
-                <button class="btn btn-primary" id="btn-capture" onclick="mockCaptureLead()" disabled>
-                    Capture
-                </button>
-            </div>
-            <div class="response-panel" id="resp-2">
-                <div class="response-bar">
-                    <span class="label">Mock Response</span>
-                    <span class="status-badge" id="status-2"></span>
-                </div>
-                <div class="response-body" id="body-2"></div>
-            </div>
-        </div>
-
-        <div class="flow-line"></div>
-
-        <!-- Step 3: Convert -->
-        <div class="step" id="step-3">
-            <div class="step-header">
-                <div class="step-number">
-                    <span class="num">3</span>
-                    <span class="check">✓</span>
-                </div>
-                <div class="step-title">Convert to Real User</div>
-            </div>
-            <div class="step-desc">
-                The ghost user decides to register. Choose either Google Social Login for instant signup, or manual conversion with name details.
-            </div>
-
-            <button class="fake-google-btn" onclick="mockGoogleConvert()" id="btn-google">
-                <img src="https://www.google.com/favicon.ico" alt="Google">
-                Sign in with Google
-            </button>
-
-            <div class="response-panel" id="resp-3-social">
-                <div class="response-bar">
-                    <span class="label">Mock Social Response</span>
-                    <span class="status-badge" id="status-3-social"></span>
-                </div>
-                <div class="response-body" id="body-3-social"></div>
-            </div>
-
-            <div class="convert-section">
-                <div class="section-label">Or convert manually (frictionless)</div>
-                <div class="form-row">
-                    <input type="email" class="input-field" id="input-real-email" placeholder="Real email" />
-                </div>
-                <div class="form-row">
-                    <input type="text" class="input-field" id="input-first" placeholder="First name" />
-                    <input type="text" class="input-field" id="input-last" placeholder="Last name" />
-                </div>
-                <button class="btn btn-primary" id="btn-convert" onclick="mockFrictionlessConvert()" disabled>
-                    Convert User
-                </button>
-            </div>
-
-            <div class="response-panel" id="resp-3-manual">
-                <div class="response-bar">
-                    <span class="label">Mock Conversion Response</span>
-                    <span class="status-badge" id="status-3-manual"></span>
-                </div>
-                <div class="response-body" id="body-3-manual"></div>
-            </div>
-        </div>
-
-        <div class="footer">
-            Built with <a href="https://frappeframework.com" target="_blank">Frappe</a> · 
-            <a href="https://github.com/" target="_blank">View on GitHub</a>
-        </div>
+    <div class="nav-group">
+      <div class="nav-title">Overview</div>
+      <ul class="nav-list">
+        <li><a href="#getting-started" class="nav-link">Getting Started</a></li>
+        <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+      </ul>
     </div>
 
-    <script>
-        // ─── Helpers ────────────────────────────────────────
-        function showResponse(panelId, statusId, bodyId, status, data) {
-            const panel = document.getElementById(panelId);
-            const badge = document.getElementById(statusId);
-            const body = document.getElementById(bodyId);
+    <div class="nav-group">
+      <div class="nav-title">Core Capabilities</div>
+      <ul class="nav-list">
+        <li><a href="#use-cases" class="nav-link">Industry Use Cases</a></li>
+        <li><a href="#features" class="nav-link">Feature Roster (11)</a></li>
+        <li>
+          <a href="#settings" class="nav-link">Ghost Settings (40+)</a>
+          <ul class="nav-sub-list">
+            <li><a href="#settings-identity" class="nav-sub-link">1. Ghost Identity</a></li>
+            <li><a href="#settings-otp" class="nav-sub-link">2. OTP Configuration</a></li>
+            <li><a href="#settings-oauth" class="nav-sub-link">3. OAuth Token Settings</a></li>
+            <li><a href="#settings-lead" class="nav-sub-link">4. Lead Capture & Merge</a></li>
+            <li><a href="#settings-analytics" class="nav-sub-link">5. Analytics & Funnel</a></li>
+            <li><a href="#settings-integrations" class="nav-sub-link">6. Integrations & Webhooks</a></li>
+            <li><a href="#settings-magicui" class="nav-sub-link">7. Magic Link UI</a></li>
+          </ul>
+        </li>
+        <li><a href="#analytics-dashboard" class="nav-link">Desk Analytics Dashboard</a></li>
+      </ul>
+    </div>
 
-            panel.classList.add('visible');
-            badge.className = 'status-badge ' + status;
-            badge.textContent = status === 'success' ? '200 OK' : 'Loading...';
+    <div class="nav-group">
+      <div class="nav-title">Developer Guide</div>
+      <ul class="nav-list">
+        <li><a href="#api" class="nav-link">API Reference</a></li>
+        <li><a href="#doctypes" class="nav-link">DocType Schema & Models</a></li>
+        <li><a href="#frontend" class="nav-link">Frontend Integration</a></li>
+        <li><a href="#architecture" class="nav-link">System Architecture</a></li>
+      </ul>
+    </div>
 
-            if (status === 'loading') {
-                body.innerHTML = '<span style="color: var(--warning);">Simulating API call...</span>';
-                return;
-            }
+    <div class="nav-group">
+      <div class="nav-title">Verification & Support</div>
+      <ul class="nav-list">
+        <li><a href="#demo" class="nav-link">Interactive Demo UI (/ghost)</a></li>
+        <li><a href="#testing" class="nav-link">Testing & Bruno Suite</a></li>
+        <li><a href="#faq" class="nav-link">FAQ & Troubleshooting</a></li>
+        <li><a href="#support" class="nav-link">Support, Privacy & Legal</a></li>
+      </ul>
+    </div>
+  </aside>
 
-            const raw = JSON.stringify(data, null, 2);
-            body.innerHTML = raw
-                .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
-                .replace(/: "([^"]*)"/g, ': <span class="string">"$1"</span>')
-                .replace(/: (true|false)/g, ': <span class="boolean">$1</span>')
-                .replace(/: (\d+)/g, ': <span class="boolean">$1</span>');
-        }
+  <!-- Main Content Body -->
+  <main class="main-content">
 
-        function markComplete(stepId) {
-            document.getElementById(stepId).classList.add('completed');
-        }
-        
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
+    <!-- Hero Header -->
+    <div class="hero" id="overview">
+      <div class="badges">
+        <span class="badge-tag"><span>Frappe Framework:</span> v15+ Supported</span>
+        <span class="badge-tag"><span>License:</span> MIT Open Source</span>
+        <span class="badge-tag"><span>Release Status:</span> v1.0.0 Stable</span>
+      </div>
+      <h1>Let users interact anonymously, convert them when they see value.</h1>
+      <p>Eliminate onboarding friction and increase user conversions. Ghost creates instant anonymous sessions, captures
+        leads without interrupting the user journey, and seamlessly converts trial users into verified customer accounts
+        preserving every interaction with zero data loss and no unnecessary database bloat.</p>
 
-        // ─── Step 1: Create Ghost Session ────────────────────
-        async function mockCreateSession() {
-            const btn = document.getElementById('btn-session');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Initializing...';
-            showResponse('resp-1', 'status-1', 'body-1', 'loading', null);
+      <div class="hero-actions">
+        <a href="#getting-started" class="btn btn-primary">Quick Start Guide</a>
+        <a href="https://github.com/muneeb141/ghost" class="btn btn-secondary" target="_blank">View on GitHub →</a>
+      </div>
+    </div>
 
-            await sleep(800); // Simulate network latency
+    <!-- Getting Started Section -->
+    <section id="getting-started">
+      <h2>⚡ Getting Started</h2>
+      <p>Integrating Ghost into your Frappe deployment takes less than 5 minutes and requires zero modifications to your
+        database schemas or existing custom user tables.</p>
 
-            const ghostEmail = "ghost_3f8b1a92@guest.local";
-            const ghostToken = "6f9b2d3c5e4a8b7c";
+      <h3>1. Prerequisites & Installation</h3>
+      <p>Ensure your system is running Frappe Framework v15 or later with an operational MariaDB database and active
+        scheduled jobs background worker.</p>
+      <pre><code># Fetch application repository from GitHub
+bench get-app https://github.com/muneeb141/ghost
 
-            showResponse('resp-1', 'status-1', 'body-1', 'success', {
-                "message": "Ghost session created successfully",
-                "user": ghostEmail,
-                "access_token": ghostToken,
-                "refresh_token": "a1b2c3d4e5f6g7h8",
-                "expires_in": 3600,
-                "token_type": "Bearer"
-            });
-            
-            markComplete('step-1');
-            document.getElementById('state-1').style.display = 'flex';
-            document.getElementById('pill-ghost').textContent = ghostEmail;
-            document.getElementById('pill-token').textContent = ghostToken.substring(0, 8) + '…';
-            document.getElementById('btn-capture').disabled = false;
-            document.getElementById('btn-convert').disabled = false;
+# Install app onto your target site
+bench --site your-site.localhost install-app ghost</code></pre>
 
-            btn.innerHTML = '✓ Session Created';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-secondary');
-        }
+      <h3>2. Initial Configuration (OAuth Client)</h3>
+      <p>Ghost operates natively on standard industry <strong>OAuth2 Bearer Token Authentication</strong> rather than
+        fragile session cookies. Before enabling, configure your site's OAuth client:</p>
+      <ol>
+        <li>Navigate to <strong>Setup > Integrations > OAuth Client</strong> in Frappe Desk.</li>
+        <li>Create a new OAuth Client with Grant Type set to <code>Password / Authorization Code</code>.</li>
+        <li>Copy the generated <strong>Client ID</strong> value.</li>
+        <li>Navigate to <strong>Setup > Ghost Settings</strong>, check <code>Enable Ghost Feature</code>, and paste your
+          Client ID.</li>
+      </ol>
 
-        // ─── Step 2: Capture Lead ────────────────────────────
-        async function mockCaptureLead() {
-            const email = document.getElementById('input-email').value;
-            if (!email) return;
+      <div class="alert">
+        <span class="alert-icon">📌</span>
+        <div class="alert-content">
+          <h5>Don't Forget the Scheduler!</h5>
+          <p>Ghost relies on automated background workers to cleanly purge expired anonymous accounts, send cart
+            abandonment reminders, and sweep outdated logs. Ensure your site scheduler is enabled via
+            <code>bench --site your-site enable-scheduler</code>.
+          </p>
+        </div>
+      </div>
 
-            const btn = document.getElementById('btn-capture');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span>';
+      <h3>3. Quick API Verification</h3>
+      <p>Test your live installation immediately using simple command-line HTTP requests:</p>
+      <pre><code>curl -X POST http://your-site:8000/api/method/ghost.api.ghost.create_ghost_session \
+  -H "Accept: application/json"</code></pre>
 
-            showResponse('resp-2', 'status-2', 'body-2', 'loading', null);
-            await sleep(600); 
+      <p><strong>Expected Successful Response (200 OK):</strong></p>
+      <pre><code>{
+  "message": {
+    "user": "ghost_4f9a823c@guest.local",
+    "access_token": "a1f59c8d23b7e40a...",
+    "refresh_token": "f901c238e4a9b231...",
+    "expires_in": 3600,
+    "token_type": "Bearer"
+  }
+}</code></pre>
+    </section>
 
-            showResponse('resp-2', 'status-2', 'body-2', 'success', {
-                "status": "success",
-                "message": "Lead captured successfully"
-            });
-            
-            markComplete('step-2');
-            btn.innerHTML = '✓ Captured';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-secondary');
-        }
+    <!-- How It Works Section -->
+    <section id="how-it-works">
+      <h2>🚀 How It Works & Conversion Mechanics</h2>
+      <p>Ghost acts as an intelligent identity bridge between anonymous interactions and permanent verified user
+        records. When an unauthenticated visitor interacts with your platform, Ghost provisions a secure temporary guest
+        account accompanied by cryptographically secure OAuth2 tokens.</p>
 
-        // ─── Step 3a: Social Login (Google) ──────────────────
-        async function mockGoogleConvert() {
-            showResponse('resp-3-social', 'status-3-social', 'body-3-social', 'loading', null);
-            await sleep(1200);
+      <div class="screenshot-container">
+        <!-- ASCII schematic representation inside docs -->
+        <pre style="margin:0; border:none; background:#0c0c12; text-align:center; padding: 28px;"><code>┌────────────────────────────────────────────────────────────────────────┐
+│  1. Anonymous Visitor arrives on Web/Mobile App                        │
+│     └── Request: create_ghost_session()                                │
+│     └── Return:  Bearer Token + temporary ghost_xxxx@guest.local       │
+├────────────────────────────────────────────────────────────────────────┤
+│  2. Active Browsing & Data Accumulation                                │
+│     └── User populates Cart, Favorites, Wishlists using Bearer token   │
+│     └── Option: capture_lead_email() triggers abandoned cart reminders │
+├────────────────────────────────────────────────────────────────────────┤
+│  3. Seamless Verification & Transition                                 │
+│     └── Option A: OTP Verification via Email or SMS                    │
+│     └── Option B: One-Click Magic Email Link                           │
+│     └── Option C: Instant Social Sign-In (Google OAuth ID Token)       │
+├────────────────────────────────────────────────────────────────────────┤
+│  4. Permanent Account Established (Zero Data Loss!)                    │
+│     └── Targeted SQL reassigns all Cart & Wishlist links automatically │
+│     └── Real user tokens returned; temporary ghost credentials voided  │
+└────────────────────────────────────────────────────────────────────────┘</code></pre>
+        <div class="screenshot-caption">Figure 1: Complete anonymous user conversion lifecycle</div>
+      </div>
 
-            showResponse('resp-3-social', 'status-3-social', 'body-3-social', 'success', {
-                "message": "User converted successfully",
-                "user": document.getElementById('input-email').value || "user@gmail.com",
-                "merged": true,
-                "conversion_mode": "social_login",
-                "access_token": "985d8eadaa79560aff2a3",
-                "refresh_token": "c35b08b4cb63eeb298a",
-                "expires_in": 3600,
-                "token_type": "Bearer"
-            });
-            markComplete('step-3');
-        }
+      <h3>Dual Conversion Pathways</h3>
+      <p>To preserve production system performance and avoid severe database lockouts caused by standard framework ORM
+        table scanning, Ghost implements two optimized conversion pathways:</p>
+      <ul>
+        <li><strong>Path A: Targeted Rename (New Users):</strong> When converting to a real email address that does not
+          yet exist in your database, Ghost uses high-speed direct SQL queries against configured link and child tables
+          (<code>_GHOST_LINK_TABLES</code> and <code>_GHOST_CHILD_TABLES</code>), changing the user ID record instantly
+          without initiating heavy framework table scans.</li>
+        <li><strong>Path B: Manual Migration (Existing Users):</strong> If the user enters an email address that already
+          has an active registered account, Ghost bypasses standard user merging entirely. Instead, it reassigns
+          ownership of application-owned records (such as active carts or lead logs) from the ghost ID to the existing
+          account, ensuring complete isolation and protection of user credentials.</li>
+      </ul>
+    </section>
 
-        // ─── Step 3b: Frictionless Convert ───────────────────
-        async function mockFrictionlessConvert() {
-            const realEmail = document.getElementById('input-real-email').value;
-            if (!realEmail) return;
+    <!-- Enterprise Use Cases Section -->
+    <section id="use-cases">
+      <h2>🎯 Universal Industry Applications & Use Cases</h2>
+      <p>Ghost is intentionally designed as an agnostic, industry-neutral authentication and conversion engine. From a
+        functional and technical perspective, standard "register-first" paywalls degrade user acquisition across every
+        modern software domain. Ghost eliminates these barriers by decoupling guest session state from mandatory
+        identity registration, empowering high-growth digital businesses across diverse verticals:</p>
 
-            const btn = document.getElementById('btn-convert');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Converting...';
+      <div class="use-case-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🛍️</span>
+          <div class="feature-title">E-Commerce & Digital Retail</div>
+          <div class="feature-desc">Eliminate checkout drop-offs and friction-induced cart abandonment. Allow shoppers
+            to browse catalogs, configure complex orders, build wishlists, and apply promotional codes completely
+            anonymously. Request authentication only at the final point of purchase confirmation—and effortlessly merge
+            abandoned carts across mobile phones and desktop laptops via Multi-Device Merging!</div>
+        </div>
 
-            showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'loading', null);
-            await sleep(900);
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <div class="feature-title">SaaS, AI Tooling & Interactive Calculators</div>
+          <div class="feature-desc">Enable frictionless "Try Before You Buy" workflows. Allow prospects to interact with
+            your SaaS tools—generate AI draft summaries, configure mortgage amortization spreadsheets, or assemble
+            architecture prototypes—as anonymous guests. When they click "Save Project", a seamless One-Click Magic Link
+            transitions their guest identity into a permanent subscriber account without losing a microsecond of their
+            work!</div>
+        </div>
 
-            showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'success', {
-                "message": "User converted successfully",
-                "user": realEmail,
-                "merged": false,
-                "conversion_mode": "rename",
-                "access_token": "985d8eadaa79560aff2a3",
-                "refresh_token": "c35b08b4cb63eeb298a",
-                "expires_in": 3600,
-                "token_type": "Bearer"
-            });
-            
-            markComplete('step-3');
-            btn.innerHTML = '✓ Converted';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-secondary');
-        }
-    </script>
+        <div class="feature-card">
+          <span class="feature-icon">🏢</span>
+          <div class="feature-title">Real Estate & Booking Portals</div>
+          <div class="feature-desc">Maximize high-value customer acquisition by letting clients shortlist luxury
+            properties, schedule onsite tour evaluations, or assemble rental applications without forcing an upfront
+            account creation. Use Soft Lead Capture (<code>Ghost Lead</code>) to silently harvest email addresses
+            entered into general contact popups, empowering sales representatives with instant CRM follow-up automation!
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🎓</span>
+          <div class="feature-title">EdTech, Certification & eLearning Portals</div>
+          <div class="feature-desc">Accelerate student engagement by allowing learners to sample introductory course
+            modules, participate in practice quizzes, or accumulate achievement progress anonymously. When a student
+            earns their initial digital completion badge or attempts to save test results, convert them instantly with a
+            6-digit SMS or Email Verification OTP!</div>
+        </div>
+      </div>
+
+      <h3>Architectural Versatility (Frontend & Backend Neutrality)</h3>
+      <p>Because Ghost operates as a clean abstraction layer over the native Frappe Framework <code>User</code>, OAuth2
+        bearer token, and scheduler ecosystems, system engineers can integrate it into any modern client-side
+        environment. Whether your enterprise UI is built in <strong>React, Next.js, Vue, Nuxt, Svelte, iOS Swift,
+          Android Kotlin, Flutter</strong>, or traditional server-rendered <strong>Jinja / Frappe Desk</strong>
+        templates, Ghost handles temporary token lifecycle pruning and high-performance SQL transformations in the
+        background with zero database lockouts.</p>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features">
+      <h2>✨ Feature Roster (11 Complete Modules)</h2>
+      <p>Ghost provides an extensive suite of modular tools designed to enhance user acquisition, protect
+        infrastructure, and provide powerful actionable insights.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <span class="feature-icon">👻</span>
+          <h4>1. Anonymous Sessions</h4>
+          <p>Instantaneous creation of guest accounts (<code>ghost_*@guest.local</code>) supported by standardized
+            OAuth2 access and refresh bearer tokens.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🔑</span>
+          <h4>2. OTP Conversion</h4>
+          <p>Secure 6-digit PIN verification sent via email or pluggable SMS gateways to validate user identity before
+            transition.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">📊</span>
+          <h4>3. Analytics Dashboard</h4>
+          <p>Dedicated desk interface tracking session generation, successful conversion ratios, drop-offs, and
+            time-to-convert metrics.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🔔</span>
+          <h4>4. Event Webhooks</h4>
+          <p>Real-time HTTP POST webhooks configured with HMAC secret signing to instantly alert CRM, marketing, or
+            automated Zapier flows upon conversion.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">✉️</span>
+          <h4>5. Magic Link Conversion</h4>
+          <p>Frictionless one-click conversion via automated email token hyperlinks, bypassing manual OTP number entry
+            completely.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🔐</span>
+          <h4>6. Social Sign-In (Google)</h4>
+          <p>Instantaneous conversion by verifying cryptographically signed Google OAuth2 ID tokens directly within your
+            backend API.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">📧</span>
+          <h4>7. Soft Lead Capture</h4>
+          <p>Collect user email addresses during mid-session checkouts without full verification to support automated
+            abandoned cart recovery campaigns.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">📱</span>
+          <h4>8. Multi-Device Merging</h4>
+          <p>Intelligently detect and unify segmented ghost user activity across desktop, tablet, and mobile browsers
+            when a shared lead email or login occurs.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">📈</span>
+          <h4>9. Conversion Funnel API</h4>
+          <p>Specialized REST endpoints outputting time-series conversion funnel statistics formatted for immediate
+            ingestion by Grafana or Metabase.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h4>10. Bulk Ghost Cleanup</h4>
+          <p>High-performance direct batch SQL purging routines designed to routinely clear out expired anonymous
+            sessions in 100k+ enterprise database architectures.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🔗</span>
+          <h4>11. Session Fingerprinting</h4>
+          <p>Device and browser footprint matching that detects returning unauthenticated users and reconnects them to
+            their existing active ghost account.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ghost Settings Section -->
+    <section id="settings">
+      <h2>⚙️ Ghost Settings Reference</h2>
+      <p>Ghost enforces a strict techno-functional rule: <strong>every single feature must be fully configurable by
+          system administrators from a centralized dashboard</strong>. No capability is hardcoded to "always on."</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/settings-ghost-identity.png" alt="Ghost Settings - Identity Tab"
+          onerror="this.src='https://placehold.co/1000x500/111119/6366f1?text=Ghost+Settings+-+Identity+Tab'">
+        <div class="screenshot-caption">Figure 2: Centralized administrative controls in Ghost Settings > Ghost Identity
+        </div>
+      </div>
+
+      <h3 id="settings-identity">Tab 1: Ghost Identity & Social Login</h3>
+      <p>Serves as the primary control panel for anonymous account creation, batch database purging routines, session
+        fingerprinting limits, and third-party Social Login transformations.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Fieldname / Label</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>enable_ghost_feature</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Master switch controlling whether guest APIs provision new ghost sessions.</td>
+          </tr>
+          <tr>
+            <td><code>enable_auto_cleanup</code></td>
+            <td>Check</td>
+            <td><code>1</code> (Enabled)</td>
+            <td>Allows background jobs to purge expired anonymous sessions automatically.</td>
+          </tr>
+          <tr>
+            <td><code>cleanup_batch_size</code></td>
+            <td>Int</td>
+            <td><code>500</code></td>
+            <td>Number of expired records to purge per database transaction during scheduled tasks.</td>
+          </tr>
+          <tr>
+            <td><code>ghost_role</code></td>
+            <td>Link (Role)</td>
+            <td><code>Ghost</code></td>
+            <td>Frappe permission security role assigned to newly created temporary users.</td>
+          </tr>
+          <tr>
+            <td><code>ghost_email_domain</code></td>
+            <td>Data</td>
+            <td><code>guest.local</code></td>
+            <td>Domain string appended when generating random guest identifiers.</td>
+          </tr>
+          <tr>
+            <td><code>expiration_days</code></td>
+            <td>Int</td>
+            <td><code>30</code></td>
+            <td>Number of days an un-converted ghost user remains active before being targeted for deletion.</td>
+          </tr>
+          <tr>
+            <td><code>enable_fingerprinting</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Enables matching returning anonymous visitors by their hardware/browser hash footprint.</td>
+          </tr>
+          <tr>
+            <td><code>fingerprint_expiry_days</code></td>
+            <td>Int</td>
+            <td><code>7</code></td>
+            <td>Number of days a stored device fingerprint remains valid before a new user account is spun up.</td>
+          </tr>
+          <tr>
+            <td><code>client_id</code></td>
+            <td>Data</td>
+            <td>—</td>
+            <td>Required OAuth2 Client ID utilized for token signing and generation.</td>
+          </tr>
+          <tr>
+            <td><code>verify_otp_on_conversion</code></td>
+            <td>Check</td>
+            <td><code>1</code> (Enabled)</td>
+            <td>Requires a valid OTP code verification before transitioning an account.</td>
+          </tr>
+          <tr>
+            <td><code>enable_social_login</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Enables direct Google Sign-In conversion endpoints.</td>
+          </tr>
+          <tr>
+            <td><code>google_client_id</code></td>
+            <td>Data</td>
+            <td>—</td>
+            <td>Your organization's authorized Google Cloud OAuth Client Application ID.</td>
+          </tr>
+          <tr>
+            <td><code>enable_magic_link</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Activates one-click conversion via automated email URLs without requiring passwords.</td>
+          </tr>
+          <tr>
+            <td><code>magic_link_expiry_minutes</code></td>
+            <td>Int</td>
+            <td><code>30</code></td>
+            <td>Lifetime duration of generated magic conversion token strings in minutes.</td>
+          </tr>
+          <tr>
+            <td><code>magic_link_redirect_url</code></td>
+            <td>Data</td>
+            <td><code>/app</code></td>
+            <td>URL path destination where authenticated users are redirected after successful link conversion.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="screenshot-container" style="margin-top: 24px;">
+        <img src="assets/screenshots/settings-magic-link.png" alt="Ghost Settings - Magic Link section"
+          onerror="this.src='https://placehold.co/1000x400/111119/6366f1?text=Ghost+Settings+-+Magic+Link+Section'">
+        <div class="screenshot-caption">Figure 3: Scrolled view showing Magic Link frictionless authentication and
+          template settings</div>
+      </div>
+
+      <h3 id="settings-otp">Tab 2: OTP Configuration</h3>
+      <p>Governs one-time password expiration windows, delivery channels (Email/SMS/Both), rate limiting lockout
+        policies, and developer QA testing bypass overrides.</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/settings-otp.png" alt="Ghost Settings - OTP Configuration Tab"
+          onerror="this.src='https://placehold.co/1000x500/111119/6366f1?text=Ghost+Settings+-+OTP+Configuration+Tab'">
+        <div class="screenshot-caption">Figure 4: Developer testing capabilities featuring Sandbox Mode and customizable
+          delivery accounts</div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fieldname / Label</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>expiry_time_minutes</code></td>
+            <td>Int</td>
+            <td><code>10</code></td>
+            <td>Duration before an issued OTP PIN code expires.</td>
+          </tr>
+          <tr>
+            <td><code>allow_anonymous_otp</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Allows generating OTPs without pre-existing email or phone records for frictionless trials.</td>
+          </tr>
+          <tr>
+            <td><code>sandbox_mode</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>QA and local development toggle. When enabled, bypasses real email/SMS dispatches.</td>
+          </tr>
+          <tr>
+            <td><code>sandbox_otp</code></td>
+            <td>Data</td>
+            <td><code>000141</code></td>
+            <td>Fixed test OTP PIN universally accepted when Sandbox Mode is active.</td>
+          </tr>
+          <tr>
+            <td><code>max_otp_attempts</code></td>
+            <td>Int</td>
+            <td><code>5</code></td>
+            <td>Maximum allowed validation attempts per OTP before temporary rate-limit lockout.</td>
+          </tr>
+          <tr>
+            <td><code>otp_code_type</code></td>
+            <td>Select</td>
+            <td><code>Numeric</code></td>
+            <td>Format of generated verification challenge strings (Numeric vs Alphanumeric).</td>
+          </tr>
+          <tr>
+            <td><code>otp_delivery_type</code></td>
+            <td>Select</td>
+            <td><code>Email</code></td>
+            <td>Delivery channel selector: <code>Email</code>, <code>SMS</code>, <code>Both</code>, or
+              <code>None</code>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>email_account</code></td>
+            <td>Link</td>
+            <td><code>—</code></td>
+            <td>Designated outbound email sender account utilized for transactional OTP delivery.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="settings-oauth">Tab 3: OAuth Token Settings</h3>
+      <p>Establishes rigorous security parameters over temporary access tokens, refresh token longevity schedules, and
+        automatic cryptographic cleanup policies upon conversion.</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/settings-oauth.png" alt="Ghost Settings - OAuth Token Settings Tab"
+          onerror="this.src='https://placehold.co/1000x400/111119/6366f1?text=Ghost+Settings+-+OAuth+Token+Settings+Tab'">
+        <div class="screenshot-caption">Figure 5: Fine-grained token lifecycle controls and automated session
+          invalidation rules</div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fieldname / Label</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>access_token_expiry</code></td>
+            <td>Int (Seconds)</td>
+            <td><code>3600</code></td>
+            <td>How long temporary bearer access tokens remain valid in seconds (default: 1 hour).</td>
+          </tr>
+          <tr>
+            <td><code>refresh_token_expiry</code></td>
+            <td>Int (Days)</td>
+            <td><code>30</code></td>
+            <td>How long associated refresh tokens remain valid before requiring new authentication.</td>
+          </tr>
+          <tr>
+            <td><code>token_scope</code></td>
+            <td>Data</td>
+            <td><code>all</code></td>
+            <td>Allowed OAuth2 API scope string attached to generated token profiles.</td>
+          </tr>
+          <tr>
+            <td><code>invalidate_ghost_tokens_on_conversion</code></td>
+            <td>Check</td>
+            <td><code>1</code> (Enabled)</td>
+            <td>Automatically revokes and purges all previous anonymous tokens upon conversion to a verified user
+              account.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="settings-lead">Tab 4: Lead Capture & Multi-Device Merging</h3>
+      <p>Provides abandoned cart recovery tools by saving guest emails into dedicated CRM records while unifying
+        disparate guest sessions across mobile and desktop interfaces.</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/settings-lead-capture.png" alt="Ghost Settings - Lead Capture Tab"
+          onerror="this.src='https://placehold.co/1000x500/111119/6366f1?text=Ghost+Settings+-+Lead+Capture+Tab'">
+        <div class="screenshot-caption">Figure 6: Abandoned cart lead mapping and Multi-Device Merge settings</div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fieldname / Label</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>enable_lead_capture</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Allows saving customer email addresses into dedicated records without completing full conversion.</td>
+          </tr>
+          <tr>
+            <td><code>lead_doctype</code></td>
+            <td>Link</td>
+            <td><code>Ghost Lead</code></td>
+            <td>Target database entity table where intercepted pre-conversion contact info is stored.</td>
+          </tr>
+          <tr>
+            <td><code>lead_reminder_hours</code></td>
+            <td>Int</td>
+            <td><code>24</code></td>
+            <td>Hours to delay before automated background worker routines dispatch reminder notifications.</td>
+          </tr>
+          <tr>
+            <td><code>enable_multi_device_merge</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Enables combining separate guest profiles when matching captured emails are discovered.</td>
+          </tr>
+          <tr>
+            <td><code>merge_detection_method</code></td>
+            <td>Select</td>
+            <td><code>Lead Email</code></td>
+            <td>Algorithm criteria employed to discover and link corresponding sessions across hardware devices.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="settings-analytics">Tab 5: Analytics & Funnel Monitoring</h3>
+      <p>Configures conversion performance event logging and displays read-only reference documentation for integrating
+        real-time conversion funnel telemetry into custom management reports.</p>
+      <div class="screenshot-container">
+        <img src="assets/screenshots/settings-analytics.png" alt="Ghost Settings - Analytics Tab"
+          onerror="this.src='https://placehold.co/1000x400/111119/6366f1?text=Ghost+Settings+-+Analytics+Tab'">
+        <div class="screenshot-caption">Figure 7: Conversion tracking toggles and helper reference notes</div>
+      </div>
+
+      <h3 id="settings-integrations">Tab 6: Integrations & Webhooks</h3>
+      <p>Facilitates server-to-server event dispatching and live WebSocket broadcasting when guest accounts successfully
+        transform into registered profiles.</p>
+      <div class="screenshot-container">
+        <img src="assets/screenshots/settings-integrations.png" alt="Ghost Settings - Integrations Tab"
+          onerror="this.src='https://placehold.co/1000x400/111119/6366f1?text=Ghost+Settings+-+Integrations+Tab'">
+        <div class="screenshot-caption">Figure 8: Secure HMAC-SHA256 external webhook integrations and live WebSocket
+          streaming toggles</div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fieldname / Label</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>enable_webhooks</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Master switch for dispatching real-time external HTTP POST notifications upon conversion events.</td>
+          </tr>
+          <tr>
+            <td><code>webhook_url</code></td>
+            <td>Data</td>
+            <td>—</td>
+            <td>External HTTP destination endpoint (e.g. Zapier, Make.com) that receives structured JSON logs.</td>
+          </tr>
+          <tr>
+            <td><code>webhook_secret</code></td>
+            <td>Password</td>
+            <td>—</td>
+            <td>Cryptographic HMAC passphrase utilized to generate automated signature verification headers.</td>
+          </tr>
+          <tr>
+            <td><code>enable_realtime_events</code></td>
+            <td>Check</td>
+            <td><code>0</code> (Disabled)</td>
+            <td>Emits live WebSocket events to connected frontend client interfaces when conversion occurs.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="settings-magicui">Tab 7: Magic Link UI Customization</h3>
+      <p>Enables developers and marketing teams to completely override the default styling and layout of automated
+        passwordless conversion verification web pages using raw HTML, CSS, and dynamic Jinja template variables (such
+        as <code>{{ magic_link }}</code> and <code>{{ error_message }}</code>).</p>
+      <div class="screenshot-container">
+        <img src="assets/screenshots/settings-magic-link-ui.png" alt="Ghost Settings - Magic Link UI Tab"
+          onerror="this.src='https://placehold.co/1000x400/111119/6366f1?text=Ghost+Settings+-+Magic+Link+UI+Tab'">
+        <div class="screenshot-caption">Figure 9: Raw HTML/CSS theme overrides and dynamic Jinja variable templating
+          controls</div>
+      </div>
+    </section>
+
+    <!-- Analytics Desk Dashboard Section -->
+    <section id="analytics-dashboard">
+      <h2>📊 Native Desk Analytics & Conversion Telemetry</h2>
+      <p>Ghost eliminates the need for expensive third-party tracking software (such as Google Analytics, Mixpanel, or
+        PostHog) by integrating an enterprise-grade interactive data visualizer directly into your native Frappe Desk
+        interface. Hosted at the <strong>Ghost Analytics</strong> administrative page, this dashboard delivers
+        high-resolution, real-time telemetry across your entire customer onboarding pipeline.</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/demo-analytics-dashboard.png" alt="Ghost Native Desk Analytics Dashboard"
+          onerror="this.src='https://placehold.co/1000x600/111119/6366f1?text=Ghost+Analytics+Dashboard'">
+        <div class="screenshot-caption">Figure 10: Native Frappe Desk conversion analytics dashboard showcasing
+          real-time KPI metric cards, interactive traffic trend curves, and conversion channel breakdowns</div>
+      </div>
+
+      <h3>1. Real-Time Performance & KPI Metrics</h3>
+      <p>The top metric panel consolidates 8 essential real-time conversion and telemetry indicators:</p>
+      <ul>
+        <li><strong>Session & Lead Conversion Rates (52.25%):</strong> Immediately quantify exactly what percentage of
+          temporary anonymous visitors transition into authenticated registered customers.</li>
+        <li><strong>Sub-500ms Execution Speed (Avg Conversion Time):</strong> Demonstrates the immense architectural
+          performance of Ghost's targeted SQL transformation engine, recording lightning-fast average conversion
+          latencies (e.g., <code>475.12 ms</code>) without causing database table locking!</li>
+        <li><strong>Merged Sessions & Reminder Recovery Rates:</strong> Explicitly track abandoned cart recovery metrics
+          and cross-device account unifications in real time.</li>
+      </ul>
+
+      <h3>2. Interactive Timeframes & Multi-Channel Breakdown</h3>
+      <p>Equipped with responsive date range filtering (<strong>Last 7 Days, Last 30 Days, Last 90 Days, and Last 180
+          Days</strong>), system administrators can drill deep into historical traffic trends. The visualizer splits
+        telemetry across two core dimensions:</p>
+      <ul>
+        <li><strong>Conversions by Mode (Bar Chart):</strong> Analyzes the exact proportion of users claiming brand-new
+          accounts (<code>New Account</code>) versus recurring customers merging anonymous sessions back into
+          pre-existing user profiles (<code>Account Merge</code>).</li>
+        <li><strong>Conversions by Channel (Donut Chart):</strong> Provides instant visibility into your most popular
+          user acquisition pathways, categorizing successful transformations across <strong>One-Time Passwords
+            (OTP)</strong>, passwordless <strong>Magic Links</strong>, and instantaneous <strong>Google Social
+            Login</strong>!</li>
+      </ul>
+    </section>
+
+    <!-- API Reference Section -->
+    <section id="api">
+      <h2>📡 Complete API Reference</h2>
+      <p>All endpoints accept requests formatted as standard JSON payloads with appropriate authorization headers. Rate
+        limits default to 100 calls per hour per originating IP address.</p>
+
+      <h3>1. Session & Identity</h3>
+
+      <h4>create_ghost_session</h4>
+      <p>Provisions a new anonymous profile and returns OAuth2 bearer tokens. If fingerprinting is enabled, passing a
+        recognized hash gracefully reconnects the visitor to their existing unexpired account.</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.ghost.create_ghost_session</code></li>
+        <li><strong>Method:</strong> <code>POST</code></li>
+        <li><strong>Authorization:</strong> None (Guest allowed)</li>
+      </ul>
+      <pre><code>// Request Body
+{
+  "email": null,            // Optional custom email override
+  "fingerprint": "a8f9d231" // Optional device fingerprint hash
+}
+
+// Success Response (200 OK)
+{
+  "message": {
+    "user": "ghost_8b10c9da@guest.local",
+    "access_token": "79b32c8f001a4e93...",
+    "refresh_token": "b8901c2374ef091b...",
+    "expires_in": 3600,
+    "token_type": "Bearer",
+    "message": "Ghost session created" // Or "Reconnected to existing Ghost session"
+  }
+}</code></pre>
+
+      <h4>convert_to_real_user</h4>
+      <p>Converts an authenticated temporary user into a persistent real account upon presenting a valid verified OTP
+        verification code.</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.ghost.convert_to_real_user</code></li>
+        <li><strong>Method:</strong> <code>POST</code></li>
+        <li><strong>Authorization:</strong> Bearer Token (Current Ghost Session)</li>
+      </ul>
+      <pre><code>// Request Body
+{
+  "ghost_email": "ghost_8b10c9da@guest.local",
+  "real_email": "jane.doe@example.com",
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "otp_code": "849201",
+  "bypass_otp": false
+}
+
+// Success Response (200 OK)
+{
+  "message": {
+    "status": "success",
+    "mode": "rename", // Or "manual_migration" if account existed
+    "user": "jane.doe@example.com",
+    "access_token": "e4b90a811c79402a...",
+    "refresh_token": "a1d88b002c91823f...",
+    "expires_in": 3600
+  }
+}</code></pre>
+
+      <h3>2. OTP Verification & Authentication</h3>
+
+      <h4>send_otp</h4>
+      <p>Dispatches a secure 6-digit verification pin to a target email or mobile phone number.</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.otp.send_otp</code></li>
+        <li><strong>Method:</strong> <code>POST</code></li>
+        <li><strong>Authorization:</strong> None (Guest allowed)</li>
+      </ul>
+      <pre><code>// Request Body
+{
+  "email": "jane.doe@example.com",
+  "phone": "+15551234567",
+  "purpose": "Conversion"
+}</code></pre>
+
+      <h4>validate_otp</h4>
+      <p>Verifies a submitted OTP PIN against an unexpired stored record without initiating conversion directly.</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.otp.validate_otp</code></li>
+        <li><strong>Method:</strong> <code>POST</code></li>
+      </ul>
+
+      <h4>refresh_bearer_token</h4>
+      <p>Exchanges a previously granted valid OAuth2 refresh token for a fresh short-lived access token.</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.auth.refresh_bearer_token</code></li>
+        <li><strong>Method:</strong> <code>POST</code></li>
+      </ul>
+      <pre><code>// Request Body
+{
+  "refresh_token": "b8901c2374ef091b..."
+}</code></pre>
+
+      <h3>3. Advanced Conversion Modules</h3>
+
+      <h4>send_magic_link & consume_magic_link</h4>
+      <p>Dispatches a one-click authentication link via email (<code>send_magic_link</code>) and verifies token
+        conversion when clicked by the recipient (<code>consume_magic_link</code>).</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.magic_link.send_magic_link</code></li>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.magic_link.consume_magic_link</code></li>
+      </ul>
+
+      <h4>convert_with_google</h4>
+      <p>Validates an identity token issued by Google OAuth Providers to execute instantaneous zero-friction account
+        transition.</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.social.convert_with_google</code></li>
+        <li><strong>Method:</strong> <code>POST</code></li>
+        <li><strong>Authorization:</strong> Bearer Token</li>
+      </ul>
+      <pre><code>// Request Body
+{
+  "ghost_email": "ghost_8b10c9da@guest.local",
+  "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+}</code></pre>
+
+      <h4>capture_email</h4>
+      <p>Records a customer's email address during mid-session browsing without demanding immediate verification,
+        supporting cart abandonment email workflows.</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.lead.capture_email</code></li>
+        <li><strong>Method:</strong> <code>POST</code></li>
+        <li><strong>Authorization:</strong> Bearer Token</li>
+      </ul>
+
+      <h4>get_conversion_funnel (BI & Analytics)</h4>
+      <p>Exposes time-series analytics funnel stage evaluations formatted specifically for external charting tools
+        (Grafana / Metabase).</p>
+      <ul>
+        <li><strong>URL:</strong> <code>/api/method/ghost.api.analytics.get_conversion_funnel</code></li>
+        <li><strong>Method:</strong> <code>GET</code></li>
+        <li><strong>Authorization:</strong> System Manager / Administrative Bearer Token</li>
+      </ul>
+    </section>
+
+    <!-- Frontend Integration Section -->
+    <section id="frontend">
+      <h2>💻 Frontend Integration Guide</h2>
+      <p>Below is a copy-paste ready reference implementation demonstrating how to incorporate Ghost into modern React,
+        Vue, or native JavaScript Single Page Applications (SPAs).</p>
+
+      <h3>Complete User Lifecycle Walkthrough</h3>
+      <pre><code>// ================================================================
+// 1. INITIALIZE GHOST SESSION & STORE BEARER TOKEN
+// ================================================================
+
+// Simple simulated device fingerprint hash generator
+function getDeviceFingerprint() {
+  let fp = localStorage.getItem('ghost_device_fp');
+  if (!fp) {
+    const raw = navigator.userAgent + screen.width + 'x' + screen.height;
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    fp = 'fp_' + Math.abs(hash).toString(16);
+    localStorage.setItem('ghost_device_fp', fp);
+  }
+  return fp;
+}
+
+// Initialize session immediately upon landing on your storefront
+async function initSession() {
+  const response = await fetch('/api/method/ghost.api.ghost.create_ghost_session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ fingerprint: getDeviceFingerprint() })
+  });
+  
+  const { access_token, refresh_token, user } = (await response.json()).message;
+  
+  // Save credentials safely in storage
+  sessionStorage.setItem('access_token', access_token);
+  localStorage.setItem('refresh_token', refresh_token);
+  sessionStorage.setItem('ghost_user', user);
+}
+
+// ================================================================
+// 2. INTERACT WITH YOUR PLATFORM USING TOKENS
+// ================================================================
+async function addToCart(itemCode, qty) {
+  const token = sessionStorage.getItem('access_token');
+  
+  await fetch('/api/method/my_store.cart.add_item', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` // Pass token in authorization header
+    },
+    body: JSON.stringify({ item: itemCode, quantity: qty })
+  });
+}
+
+// ================================================================
+// 3. SEAMLESS CONVERSION AT CHECKOUT
+// ================================================================
+async function requestConversionOTP(customerEmail) {
+  await fetch('/api/method/ghost.api.otp.send_otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: customerEmail, purpose: 'Conversion' })
+  });
+}
+
+async function finalizeAccountConversion(customerEmail, otpCodeInput) {
+  const currentToken = sessionStorage.getItem('access_token');
+  const ghostEmail = sessionStorage.getItem('ghost_user');
+
+  const res = await fetch('/api/method/ghost.api.ghost.convert_to_real_user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${currentToken}`
+    },
+    body: JSON.stringify({
+      ghost_email: ghostEmail,
+      real_email: customerEmail,
+      otp_code: otpCodeInput
+    })
+  });
+
+  const { access_token, refresh_token, user } = (await res.json()).message;
+
+  // Update tokens to reflect permanent authenticated status!
+  sessionStorage.setItem('access_token', access_token);
+  localStorage.setItem('refresh_token', refresh_token);
+  
+  console.log("🎉 User converted successfully! Cart contents preserved.");
+}</code></pre>
+
+      <div class="alert">
+        <span class="alert-icon">💡</span>
+        <div class="alert-content">
+          <h5>Built-In Interactive Demo & Playground</h5>
+          <p>Want to experiment with these flows live? Open your browser to <code>http://your-site:8000/ghost</code> to
+            launch our modern interactive playground, featuring step-by-step state visualization and real-time response
+            inspection.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DocType Schema Section -->
+    <section id="doctypes">
+      <h2>🗄️ DocType Schema & Data Models</h2>
+      <p>When Ghost is installed onto your Frappe environment via <code>bench migrate</code>, it provisions <strong>6
+          specialized database schemas (DocTypes)</strong> engineered for high-throughput guest session management,
+        strict cryptographic security, and automated database hygiene.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>DocType Name</th>
+            <th>Type</th>
+            <th>Key Data Fields</th>
+            <th>Operational Purpose & Automated Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Ghost Settings</strong><br><code>ghost_settings</code></td>
+            <td>Single</td>
+            <td><code>enable_ghost_users</code>, <code>default_ttl_days</code>, <code>secret_key</code>,
+              <code>custom_html</code>
+            </td>
+            <td>Acts as the central configuration engine across 7 administrative tabs. Governs session lifetimes, social
+              login keys, OTP rate limits, and custom verification branding.</td>
+          </tr>
+          <tr>
+            <td><strong>Ghost Lead</strong><br><code>ghost_lead</code></td>
+            <td>Standard<br><em>(Table)</em></td>
+            <td><code>ghost_user</code>, <code>captured_email</code>, <code>status</code>, <code>last_active_at</code>
+            </td>
+            <td>Powers abandoned cart recovery and pre-conversion marketing pipelines. Safely captures user emails
+              mid-journey before full registration, mapping them to anonymous session identifiers with automated email
+              follow-up status tracking.</td>
+          </tr>
+          <tr>
+            <td><strong>Ghost Conversion Log</strong><br><code>ghost_conversion_log</code></td>
+            <td>Standard<br><em>(Table)</em></td>
+            <td><code>ghost_user</code>, <code>converted_user</code>, <code>conversion_mode</code>,
+              <code>conversion_date</code>
+            </td>
+            <td>Serves as the immutable audit ledger for analytics dashboards and external Business Intelligence (BI)
+              tools. Logs transformation latency, User-Agent metadata, and conversion paths (Rename vs. Merge).
+              Automatically pruned by daily scheduler cleanup jobs based on configured retention rules.</td>
+          </tr>
+          <tr>
+            <td><strong>Ghost Fingerprint</strong><br><code>ghost_fingerprint</code></td>
+            <td>Standard<br><em>(Table)</em></td>
+            <td><code>fingerprint_hash</code>, <code>ghost_user</code>, <code>created_at</code>, <code>expires_on</code>
+            </td>
+            <td>Enables returning visitor recognition by storing cryptographically hashed device and browser footprints.
+              Allows visitors returning within their active window (default: 7 days) to seamlessly re-link to their
+              existing anonymous session without creating database bloat or dropping active cart state.</td>
+          </tr>
+          <tr>
+            <td><strong>Ghost Magic Link Token</strong><br><code>ghost_magic_link_token</code></td>
+            <td>Standard<br><em>(Table)</em></td>
+            <td><code>token_hash</code>, <code>ghost_user</code>, <code>target_email</code>, <code>expires_at</code>,
+              <code>is_used</code>
+            </td>
+            <td>Secure token registry for passwordless email authentication. Stores one-time verification challenge
+              hashes with tight expiration intervals (default: 30 minutes), enforcing single-use policies to completely
+              eliminate token replay attacks.</td>
+          </tr>
+          <tr>
+            <td><strong>OTP</strong><br><code>otp</code></td>
+            <td>Standard<br><em>(Table)</em></td>
+            <td><code>recipient</code>, <code>otp_code</code>, <code>attempts</code>, <code>verified</code>,
+              <code>expires_on</code>
+            </td>
+            <td>Tracks issued 6-digit one-time PINs across Email and SMS delivery channels. Monitors failed verification
+              attempts in real time to enforce anti-bruteforce lockout rate limiting, and is automatically swept by
+              background cron tasks every 10 minutes.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture">
+      <h2>🏗️ System Architecture & Scheduled Workers</h2>
+      <p>Ghost is structured around decoupled service layers that isolate guest operations from standard authenticated
+        business logic, ensuring reliability at scale.</p>
+
+      <h3>Scheduled Tasks (Scheduler Integration)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Module Path</th>
+            <th>Frequency</th>
+            <th>Operational Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>ghost.tasks.expire_otps</code></td>
+            <td>Every 10 Minutes</td>
+            <td>Sweeps database table and flags expired OTP PIN records as obsolete.</td>
+          </tr>
+          <tr>
+            <td><code>ghost.tasks.send_lead_reminders</code></td>
+            <td>Hourly</td>
+            <td>Queries unconverted <code>Ghost Lead</code> records older than configured reminder threshold and
+              triggers email follow-ups.</td>
+          </tr>
+          <tr>
+            <td><code>ghost.tasks.delete_expired_ghost_users</code></td>
+            <td>Daily</td>
+            <td>Executes high-performance batch SQL deletions against expired ghost user records and associated token
+              tables.</td>
+          </tr>
+          <tr>
+            <td><code>ghost.tasks.delete_old_conversion_logs</code></td>
+            <td>Daily</td>
+            <td>Enforces data compliance by stripping conversion log entries older than configured retention days.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Interactive Demo Playground Section -->
+    <section id="demo">
+      <h2>🎮 Interactive Demo UI & Testing Playground</h2>
+      <p>Ghost ships with a full-featured, zero-setup interactive web testing playground hosted at <code>/ghost</code>
+        on your Frappe development server. This allows developers, QA engineers, and marketing evaluators to test the
+        complete anonymous authentication and conversion lifecycle directly in their browser without having to design or
+        deploy custom frontend form components.</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/demo-playground-top.png" alt="Ghost Interactive Playground - Step 1 & 2"
+          onerror="this.src='https://placehold.co/1000x500/111119/6366f1?text=Demo+Playground+-+Step+1+%26+2'">
+        <div class="screenshot-caption">Figure 11: Live browser testing playground simulating anonymous visitor
+          onboarding and lead email capture</div>
+      </div>
+
+      <h3>1. Simulating Anonymous Sessions & Fingerprinting</h3>
+      <p>By clicking <strong>Create Ghost Session</strong> in Step 1, the playground triggers an immediate API request
+        to provision a temporary OAuth2 identity and displays the raw JSON bearer tokens in real time. If
+        <strong>Session Fingerprinting</strong> is enabled in Ghost Settings, returning visitors are automatically
+        recognized by their hardware footprint, emitting a seamless <code>"Reconnected to existing Ghost session"</code>
+        confirmation message!
+      </p>
+
+      <h3>2. Frictionless Conversions & Developer Magic Link Bypass</h3>
+      <p>In Step 3, users can experience both immediate <strong>Google Social Login</strong> conversion and frictionless
+        manual email transformations. To accelerate QA workflows and local automated integration testing, the execution
+        panel generates an interactive <strong>Developer QA Bypass Button</strong> directly inside the live response
+        container!</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/demo-playground-convert.png"
+          alt="Ghost Interactive Playground - Conversion & Magic Link QA"
+          onerror="this.src='https://placehold.co/1000x600/111119/6366f1?text=Demo+Playground+-+Conversion+%26+QA+Bypass'">
+        <div class="screenshot-caption">Figure 12: Step 3 conversion testing showcasing Google Social Login and the
+          automated Magic Link testing bypass button</div>
+      </div>
+
+      <p>Clicking the generated purple button (<code>🔗 Click here to test Magic Link (Bypasses Email)</code>) allows
+        integration testers to immediately transition ghost accounts without having to set up live SMTP servers or open
+        third-party email inboxes!</p>
+
+      <h3>3. Standalone Verification Landing Page (/convert)</h3>
+      <p>When users verify their identities via Magic Links or automated transactional notifications, Ghost routes them
+        through our clean, secure, dark-mode verification web portal hosted at <code>/convert</code>. This interface can
+        be completely skinned and branded using raw HTML/CSS from Tab 7 in Ghost Settings.</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/demo-magic-link-page.png" alt="Ghost Magic Link Verification Landing Page"
+          onerror="this.src='https://placehold.co/1000x500/111119/6366f1?text=Ghost+Magic+Link+Verification+Page'">
+        <div class="screenshot-caption">Figure 13: Out-of-the-box secure verification landing page located at /convert
+        </div>
+      </div>
+
+      <h3>4. Realtime Webhooks & Behind the Scenes Telemetry</h3>
+      <p>At the bottom of the interactive playground, developers can monitor live event dispatches. When an account
+        converts, Ghost displays the structured JSON payload along with its cryptographic HMAC-SHA256 signature
+        verification headers, complete with instructions for launching a local listener script
+        (<code>test_webhook.py</code>).</p>
+
+      <div class="screenshot-container">
+        <img src="assets/screenshots/demo-webhooks-card.png" alt="Ghost Demo Webhooks Behind the Scenes Card"
+          onerror="this.src='https://placehold.co/1000x400/111119/6366f1?text=Demo+Webhooks+Card'">
+        <div class="screenshot-caption">Figure 14: Live server-to-server webhook simulation and signature verification
+          card</div>
+      </div>
+    </section>
+
+    <!-- Testing & Bruno Suite -->
+    <section id="testing">
+      <h2>🧪 Testing & Bruno Verification Suite</h2>
+      <p>Ghost prioritizes rock-solid production stability and maintains an extensive verification ecosystem covering
+        unit testing, functional verification, and continuous integration.</p>
+
+      <h3>Running Unit Tests</h3>
+      <p>Our automated testing framework spans 15 standalone Python test suites located inside
+        <code>ghost/tests/</code>. To execute verification directly against your developer site:
+      </p>
+      <pre><code># Run complete test coverage suite from bench command line
+bench --site your-site.localhost run-tests --app ghost
+
+# Run specific feature test modules
+bench --site your-site.localhost run-tests --app ghost --module ghost.tests.test_fingerprinting</code></pre>
+
+      <h3>Bruno API Collection</h3>
+      <p>We bundle an extensive <strong>Bruno API Collection</strong> inside the repository's <code>/bruno/</code>
+        subdirectory. Containing 13 pre-built requests equipped with automatic post-response scripts that populate
+        tokens into your workspace variables, it represents the fastest way to verify API contracts manually or inside
+        automated CI pipelines.</p>
+      <p>Refer to <a href="https://github.com/muneeb141/ghost/tree/develop/bruno" target="_blank">bruno/README.md</a>
+        for complete test flow instructions.</p>
+    </section>
+
+    <!-- FAQ & Troubleshooting -->
+    <section id="faq">
+      <h2>🤔 FAQ & Troubleshooting</h2>
+
+      <h4>Q: Why am I receiving an error stating "OAuth Client ID is required"?</h4>
+      <p>Ghost generates standard OAuth2 bearer tokens for guest user sessions. Before initializing sessions, you must
+        generate an OAuth Client inside Frappe desk (<strong>Setup > Integrations > OAuth Client</strong>) and paste its
+        corresponding ID into your <strong>Ghost Settings</strong>.</p>
+
+      <h4>Q: What happens to cart items, order proposals, or custom application data when a ghost converts?</h4>
+      <p>During conversion, Ghost's engine intelligently inspects all link and child tables associated with your
+        application (<code>_GHOST_LINK_TABLES</code>). If converting to a new email address, it performs a high-speed
+        direct SQL rename, preserving 100% of linked records instantly. If converting to an existing registered user, it
+        reassigns ownership of application-owned records without executing heavy framework merges.</p>
+
+      <h4>Q: Can I utilize Ghost inside React Native, Flutter, or mobile web view applications?</h4>
+      <p>Yes! Because Ghost avoids browser cookies entirely and operates solely on standard OAuth2 authorization header
+        tokens (<code>Authorization: Bearer <token></code>), it integrates seamlessly into native iOS and Android mobile
+        client environments.</p>
+
+      <h4>Q: Is Ghost compliant with GDPR and enterprise privacy standards?</h4>
+      <p>Yes. Ghost automatically triggers daily scheduled pruning jobs that erase expired anonymous guest records from
+        your database after a configurable retention threshold (defaulting to 30 days). No lingering personally
+        identifiable data is left behind.</p>
+    </section>
+
+    <!-- Support & Legal Compliance Section -->
+    <section id="support">
+      <h2>🤝 Community Support, Privacy & Legal Compliance</h2>
+      <p>Ghost is an open-source Frappe framework extension designed with strict security, GDPR data privacy compliance, and developer transparency at its core.</p>
+
+      <h3>1. Technical Support & Issue Reporting</h3>
+      <p>For community bug fixes, architectural questions, or feature enhancement proposals, please interact directly with our development team through official repository channels:</p>
+      <ul>
+        <li><strong>Issue Tracker & Bug Reports:</strong> <a href="https://github.com/muneeb141/ghost/issues" target="_blank">https://github.com/muneeb141/ghost/issues</a></li>
+        <li><strong>Developer Repository:</strong> <a href="https://github.com/muneeb141/ghost" target="_blank">https://github.com/muneeb141/ghost</a></li>
+      </ul>
+
+      <h3>2. Privacy Policy & Data Retention (GDPR Compliance)</h3>
+      <p>Ghost is engineered to eliminate unnecessary database storage of sensitive user metadata. Anonymous guest profiles, hardware fingerprints, and conversion audit logs are governed by automated scheduler workers that prune obsolete records according to strict administrative retention limits (defaulting to 30 days for sessions and 90 days for audit logs). Ghost never transfers user telemetry or identification tokens to third-party tracking networks.</p>
+
+      <h3>3. Terms of Service & Open Source License</h3>
+      <p>Ghost is free and open-source software distributed under the terms of the Massachusetts Institute of Technology (<strong>MIT License</strong>). You are free to copy, modify, distribute, and integrate this software within commercial and enterprise Frappe deployments without subscription restrictions or proprietary vendor lock-in. Full licensing terms can be reviewed directly in our <a href="https://github.com/muneeb141/ghost/blob/main/LICENSE" target="_blank">Repository License File</a>.</p>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
 </body>
+
 </html>

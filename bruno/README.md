@@ -158,6 +158,22 @@ Authorization: Bearer <access_token>
 }
 ```
 
+### 5. Analytics & Conversion Funnel APIs
+
+**Endpoint (Dashboard):** `GET /api/method/ghost.ghost.page.ghost_analytics.ghost_analytics.get_analytics_data`  
+**Endpoint (REST Funnel):** `GET /api/method/ghost.api.analytics.get_conversion_funnel`
+
+**Authentication:** System Manager role required (via Bearer token or Token Auth)
+
+**Query Parameters:**
+- `days` (int): Number of trailing days to analyze (default: 30, e.g. 7 or 30).
+- `from_date` / `to_date` (date string): Optional precise date boundary overrides (YYYY-MM-DD).
+
+**Key Enriched Response Metrics:**
+- **`conversions_by_channel`**: Breakdown of successful conversions attributed across channels (`OTP`, `Magic Link`, `Google`, `Direct/Other`).
+- **`lead_recovery` & `reminder_recovery_rate`**: Measures conversion volume achieved through soft-captured abandoned cart email reminders.
+- **`total_merged_sessions`**: Counts multi-device session migrations successfully fused into verified user identities.
+
 ## Authentication
 
 All authenticated requests use OAuth2 Bearer tokens:
