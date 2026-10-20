@@ -14,7 +14,7 @@ import frappe
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
 
-from ghost.ghost.doctype.otp.otp import generate
+from ghost.ghost.doctype.ghost_otp.ghost_otp import generate
 
 
 def run(site):
@@ -136,11 +136,11 @@ def run(site):
 			frappe.connect()
 			frappe.set_user("Administrator")
 			if otp_name:
-				frappe.db.delete("OTP", {"name": otp_name})
+				frappe.db.delete("Ghost OTP", {"name": otp_name})
 			for identity in (email, ghost_target, ghost_data["user"] if ghost_data else None):
 				if not identity:
 					continue
-				frappe.db.delete("OTP", {"email": identity})
+				frappe.db.delete("Ghost OTP", {"email": identity})
 				frappe.db.delete("OAuth Bearer Token", {"user": identity})
 				if frappe.db.exists("User", identity):
 					frappe.delete_doc("User", identity, force=True, ignore_permissions=True)

@@ -70,6 +70,7 @@ jobs:
           bench version
           bench build --app frappe
           cp "$GITHUB_WORKSPACE/scripts/compatibility_site.py" "$RUNNER_TEMP/compatibility_site.py"
+          cp "$GITHUB_WORKSPACE/scripts/smoke_otp_rename.py" "$RUNNER_TEMP/smoke_otp_rename.py"
           git -C apps/ghost rev-parse HEAD > "$RUNNER_TEMP/ghost-candidate-sha"
       - name: Clean install, complete suite, HTTP session and build
         working-directory: ${{ runner.temp }}/ghost-bench
@@ -90,11 +91,15 @@ jobs:
           bench --site ghost-ci-upgrade.localhost install-app ghost
           bench --site ghost-ci-upgrade.localhost set-config allow_tests true
           env/bin/python "$RUNNER_TEMP/compatibility_site.py" ghost-ci-upgrade.localhost seed
+          env/bin/python "$RUNNER_TEMP/smoke_otp_rename.py" ghost-ci-upgrade.localhost seed
       - name: Upgrade without losing existing identities, OTPs or links
         working-directory: ${{ runner.temp }}/ghost-bench
         run: |
           git -C apps/ghost checkout --detach "$(cat "$RUNNER_TEMP/ghost-candidate-sha")"
           bench --site ghost-ci-upgrade.localhost migrate
+          bench --site ghost-ci-upgrade.localhost migrate
+          env/bin/python "$RUNNER_TEMP/smoke_otp_rename.py" ghost-ci-upgrade.localhost check
+          env/bin/python "$RUNNER_TEMP/smoke_otp_rename.py" ghost-ci-upgrade.localhost cleanup
           env/bin/python "$RUNNER_TEMP/compatibility_site.py" ghost-ci-upgrade.localhost upgrade
           bench --site ghost-ci-upgrade.localhost run-tests --app ghost 2>&1 | tee "$RUNNER_TEMP/ghost-upgrade-tests.log"
           env/bin/python apps/ghost/scripts/smoke_email_otp.py ghost-ci-upgrade.localhost

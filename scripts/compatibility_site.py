@@ -18,10 +18,12 @@ OTP = "ghost-ci-upgrade-otp"
 
 def check_schema():
 	assert set(frappe.get_installed_apps()) == {"frappe", "ghost"}, "Ghost must work without ERPNext"
-	assert frappe.db.exists("DocType", "OTP"), "The public OTP DocType must remain compatible"
-	assert frappe.get_meta("OTP").module == "Ghost"
+	assert frappe.db.exists("DocType", "Ghost OTP"), "The renamed Ghost OTP DocType must be installed"
+	assert frappe.get_meta("Ghost OTP").module == "Ghost"
+	assert not frappe.db.exists("DocType", "OTP")
+	assert not frappe.db.table_exists("OTP")
 	for operation in ("read", "create", "write"):
-		assert not frappe.has_permission("OTP", operation, user="Guest")
+		assert not frappe.has_permission("Ghost OTP", operation, user="Guest")
 	assert frappe.db.exists("Role", "Ghost")
 	assert not frappe.db.get_value("Role", "Ghost", "desk_access")
 
@@ -109,7 +111,7 @@ def seed():
 
 def upgrade():
 	from ghost.api.ghost import convert_to_real_user
-	from ghost.ghost.doctype.otp.otp import generate, verify
+	from ghost.ghost.doctype.ghost_otp.ghost_otp import generate, verify
 
 	check_schema()
 	settings = frappe.get_single("Ghost Settings")
@@ -117,7 +119,7 @@ def upgrade():
 	assert not settings.sandbox_mode
 	assert not settings.enable_otp_login and not settings.allow_public_signup
 	assert frappe.db.exists("User", SOURCE)
-	assert frappe.db.get_value("OTP", OTP, "user") == SOURCE
+	assert frappe.db.get_value("Ghost OTP", OTP, "user") == SOURCE
 	assert frappe.db.get_value("Ghost Lead", LEAD, "ghost_email") == SOURCE
 	settings.update({"enable_otp_login": 1, "allow_public_signup": 1})
 	settings.save()
@@ -135,7 +137,7 @@ def upgrade():
 	result = convert_to_real_user(SOURCE, TARGET, otp_code=code)
 	assert result["user"] == TARGET
 	assert frappe.db.get_value("Ghost Lead", LEAD, "ghost_email") == TARGET
-	assert frappe.db.get_value("OTP", OTP, "user") == TARGET
+	assert frappe.db.get_value("Ghost OTP", OTP, "user") == TARGET
 	print(
 		"PASS: legacy records preserved, security defaults migrated, eight-character Ghost identity converted and native User links followed"
 	)
