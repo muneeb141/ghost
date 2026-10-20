@@ -12,7 +12,7 @@ except ImportError:
 	from frappe.tests.utils import FrappeTestCase as IntegrationTestCase
 
 from ghost.api import auth, ghost, magic_link, social
-from ghost.ghost.doctype.otp.otp import generate, verify
+from ghost.ghost.doctype.ghost_otp.ghost_otp import generate, verify
 
 
 class TestSecurityIntegration(IntegrationTestCase):
@@ -110,7 +110,7 @@ class TestSecurityIntegration(IntegrationTestCase):
 
 	def test_expired_otp_is_rejected(self):
 		result = generate(email=self.email, send=False)
-		frappe.db.set_value("OTP", result["name"], "expiry", add_to_date(now_datetime(), minutes=-1))
+		frappe.db.set_value("Ghost OTP", result["name"], "expiry", add_to_date(now_datetime(), minutes=-1))
 		with self.assertRaises(frappe.ValidationError):
 			verify(result["otp_code"], email=self.email)
 
@@ -127,7 +127,7 @@ class TestSecurityIntegration(IntegrationTestCase):
 	def test_guest_has_no_otp_read_or_create_permission(self):
 		frappe.set_user("Guest")
 		for operation in ("read", "create", "write"):
-			self.assertFalse(frappe.has_permission("OTP", operation, user="Guest"))
+			self.assertFalse(frappe.has_permission("Ghost OTP", operation, user="Guest"))
 
 	def test_email_otp_logs_into_existing_account_without_tokens(self):
 		user = self.create_account()
@@ -252,7 +252,7 @@ class TestParallelConsumption(IntegrationTestCase):
 				outcomes = list(executor.map(lambda _: attempt(), range(2)))
 			self.assertEqual(sorted(outcomes), ["accepted", "rejected"])
 		finally:
-			frappe.db.delete("OTP", {"name": result["name"]})
+			frappe.db.delete("Ghost OTP", {"name": result["name"]})
 			frappe.get_single("Ghost Settings").update(
 				{
 					k: original.get(k)

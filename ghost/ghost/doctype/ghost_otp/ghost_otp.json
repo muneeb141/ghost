@@ -118,7 +118,7 @@
     "modified": "2025-12-12 21:22:48.418986",
     "modified_by": "Administrator",
     "module": "Ghost",
-    "name": "OTP",
+    "name": "Ghost OTP",
     "naming_rule": "By \"Naming Series\" field",
     "owner": "Administrator",
     "permissions": [

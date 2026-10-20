@@ -54,7 +54,7 @@ def convert_to_real_user(
 	conversion_channel="OTP",
 ):
 	"""Public OTP conversion. Provider proofs are accepted only by private server paths."""
-	from ghost.ghost.doctype.otp.otp import verify
+	from ghost.ghost.doctype.ghost_otp.ghost_otp import verify
 	from ghost.security import require_owned_ghost
 
 	if not frappe.get_single("Ghost Settings").get("enable_otp_login"):
@@ -221,12 +221,12 @@ def get_ghost_owned_reassignment_plan():
 	"""
 	return [
 		{
-			"doctype": "OTP",
+			"doctype": "Ghost OTP",
 			"field": "user",
 			"description": "Reassign OTP user reference from ghost to real user",
 		},
 		{
-			"doctype": "OTP",
+			"doctype": "Ghost OTP",
 			"field": "email",
 			"description": "Reassign OTP email when it matches ghost email",
 		},

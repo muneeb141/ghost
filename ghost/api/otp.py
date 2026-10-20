@@ -2,8 +2,8 @@ import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
 
-from ghost.ghost.doctype.otp.otp import generate as generate_otp
-from ghost.ghost.doctype.otp.otp import verify as verify_otp
+from ghost.ghost.doctype.ghost_otp.ghost_otp import generate as generate_otp
+from ghost.ghost.doctype.ghost_otp.ghost_otp import verify as verify_otp
 from ghost.security import normalize_recipients
 
 

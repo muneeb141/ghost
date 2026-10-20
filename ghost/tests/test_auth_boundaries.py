@@ -11,7 +11,7 @@ import frappe
 from ghost import security
 from ghost.api import auth, ghost, magic_link, social
 from ghost.api import otp as otp_api
-from ghost.ghost.doctype.otp import otp
+from ghost.ghost.doctype.ghost_otp import ghost_otp as otp
 from ghost.tests.unit_helpers import local_attribute
 
 
@@ -181,7 +181,7 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 		with patch.object(otp, "limit_verification"):
 			self.assertTrue(otp.verify("123456", email="owner@example.invalid")["valid"])
 		self.assertTrue(self.db.get_value.call_args.kwargs["for_update"])
-		self.db.set_value.assert_called_once_with("OTP", "OTP-mock", "status", "Expired")
+		self.db.set_value.assert_called_once_with("Ghost OTP", "OTP-mock", "status", "Expired")
 		self.db.commit.assert_not_called()
 
 	def test_wrong_otp_does_not_consume_or_authenticate(self):
@@ -240,7 +240,7 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 
 	def test_otp_metadata_grants_no_guest_access(self):
 		root = Path(__file__).resolve().parents[1]
-		meta = json.loads((root / "ghost/doctype/otp/otp.json").read_text())
+		meta = json.loads((root / "ghost/doctype/ghost_otp/ghost_otp.json").read_text())
 		self.assertNotIn("Guest", [p["role"] for p in meta["permissions"]])
 		self.assertFalse(meta["index_web_pages_for_search"])
 

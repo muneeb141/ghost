@@ -7,10 +7,13 @@ app_license = "mit"
 
 # Installation
 # ------------
+before_install = "ghost.install.before_install"
 after_install = "ghost.install.after_install"
 
 # Migrations
 # ------------
+before_migrate = "ghost.patches.v2_0.rename_otp_to_ghost_otp.validate_migration"
+never_skip_patches = ["ghost.patches.v2_0.rename_otp_to_ghost_otp"]
 after_migrate = "ghost.patches.v1_0.set_ghost_settings_defaults.execute"
 
 

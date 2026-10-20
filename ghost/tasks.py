@@ -61,13 +61,13 @@ def expire_otps():
 	"""
 	try:
 		expired_otps = frappe.get_all(
-			"OTP", filters={"status": "Valid", "expiry": ["<", now_datetime()]}, fields=["name"]
+			"Ghost OTP", filters={"status": "Valid", "expiry": ["<", now_datetime()]}, fields=["name"]
 		)
 
 		count = 0
 		for otp in expired_otps:
 			try:
-				otp_doc = frappe.get_doc("OTP", otp.name)
+				otp_doc = frappe.get_doc("Ghost OTP", otp.name)
 				otp_doc.status = "Expired"
 				otp_doc.save(ignore_permissions=True)
 				count += 1

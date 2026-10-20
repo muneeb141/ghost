@@ -5,17 +5,17 @@ from frappe.utils import add_to_date, now_datetime
 
 from ghost.api.auth import login
 from ghost.api.otp import send_otp, validate_otp
-from ghost.ghost.doctype.otp.otp import generate, verify
+from ghost.ghost.doctype.ghost_otp.ghost_otp import generate, verify
 from ghost.tests.helpers import GhostIntegrationCase
 
 
 class TestFrappeIdentityOTP(GhostIntegrationCase):
 	def test_otp_flow(self):
-		with patch("ghost.ghost.doctype.otp.otp.send_otp", return_value={"status": "sent"}):
+		with patch("ghost.ghost.doctype.ghost_otp.ghost_otp.send_otp", return_value={"status": "sent"}):
 			response = send_otp(email=self.email, purpose="Sign Up")
 		self.assertEqual(set(response), {"status", "message"})
-		name = frappe.db.get_value("OTP", {"email": self.email, "purpose": "Sign Up"}, "name")
-		code = frappe.db.get_value("OTP", name, "otp_code")
+		name = frappe.db.get_value("Ghost OTP", {"email": self.email, "purpose": "Sign Up"}, "name")
+		code = frappe.db.get_value("Ghost OTP", name, "otp_code")
 		self.assertEqual(validate_otp(code, email=self.email, purpose="Sign Up")["status"], "success")
 		with self.assertRaises(frappe.ValidationError):
 			validate_otp(code, email=self.email, purpose="Sign Up")
@@ -30,7 +30,7 @@ class TestFrappeIdentityOTP(GhostIntegrationCase):
 		self.code()
 		latest = self.code()
 		self.assertEqual(
-			frappe.db.count("OTP", {"email": self.email, "purpose": "Login", "status": "Valid"}), 1
+			frappe.db.count("Ghost OTP", {"email": self.email, "purpose": "Login", "status": "Valid"}), 1
 		)
 		self.assertTrue(verify(latest, email=self.email)["valid"])
 
@@ -43,21 +43,21 @@ class TestFrappeIdentityOTP(GhostIntegrationCase):
 		self.new_user()
 		code = self.code()
 		name = frappe.db.get_value(
-			"OTP", {"email": self.email, "purpose": "Login", "status": "Valid"}, "name"
+			"Ghost OTP", {"email": self.email, "purpose": "Login", "status": "Valid"}, "name"
 		)
-		frappe.db.set_value("OTP", name, "phone", "+910000000001")
+		frappe.db.set_value("Ghost OTP", name, "phone", "+910000000001")
 		with self.actor("Guest"), self.assertRaises(frappe.ValidationError):
 			login(code, email=self.email)
 
 	def test_both_delivery_setting_selects_the_one_requested_recipient(self):
 		self.configure(otp_delivery_type="Both")
 		result = generate(email=self.email, purpose="Login", send=False)
-		self.assertEqual(frappe.db.get_value("OTP", result["name"], "delivery_method"), "Email")
+		self.assertEqual(frappe.db.get_value("Ghost OTP", result["name"], "delivery_method"), "Email")
 
 	def test_expired_codes_are_not_accepted(self):
 		code = self.code()
-		name = frappe.db.get_value("OTP", {"email": self.email, "status": "Valid"}, "name")
-		frappe.db.set_value("OTP", name, "expiry", add_to_date(now_datetime(), minutes=-1))
+		name = frappe.db.get_value("Ghost OTP", {"email": self.email, "status": "Valid"}, "name")
+		frappe.db.set_value("Ghost OTP", name, "expiry", add_to_date(now_datetime(), minutes=-1))
 		with self.assertRaises(frappe.ValidationError):
 			verify(code, email=self.email)
 

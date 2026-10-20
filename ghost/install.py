@@ -1,6 +1,12 @@
 import frappe
 
 
+def before_install():
+	from ghost.patches.v2_0.rename_otp_to_ghost_otp import validate_target
+
+	validate_target()
+
+
 def after_install():
 	create_ghost_role()
 	setup_default_settings()

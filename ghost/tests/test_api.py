@@ -40,13 +40,13 @@ class TestFrappeIdentityAPI(GhostIntegrationCase):
 	def test_convert_existing_user_manual_migration(self):
 		target = self.new_user()
 		source = self.new_ghost()["user"]
-		from ghost.ghost.doctype.otp.otp import generate
+		from ghost.ghost.doctype.ghost_otp.ghost_otp import generate
 
 		linked = generate(email="linked-" + self.email, user=source, purpose="Login", send=False)
 		result = self.convert(source, first_name="Unwanted replacement")
 		self.assertEqual(result["conversion_mode"], "manual_migration")
 		self.assertEqual(frappe.db.get_value("User", target.name, "first_name"), "Fixture")
-		self.assertEqual(frappe.db.get_value("OTP", linked["name"], "user"), target.name)
+		self.assertEqual(frappe.db.get_value("Ghost OTP", linked["name"], "user"), target.name)
 		self.assertEqual(frappe.db.get_value("User", source, "enabled"), 0)
 
 	def test_convert_requires_otp_even_for_legacy_setting(self):

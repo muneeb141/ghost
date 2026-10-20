@@ -12,15 +12,15 @@ from ghost.tests.helpers import GhostIntegrationCase
 class TestUpgradeCompatibility(GhostIntegrationCase):
 	def test_migration_preserves_existing_otp_and_is_idempotent(self):
 		code = self.code()
-		name = frappe.db.get_value("OTP", {"email": self.email, "status": "Valid"}, "name")
+		name = frappe.db.get_value("Ghost OTP", {"email": self.email, "status": "Valid"}, "name")
 		with patch("builtins.print"):
 			execute()
 			first = frappe.get_single("Ghost Settings").as_dict()
 			execute()
 		second = frappe.get_single("Ghost Settings").as_dict()
 		self.assertEqual(first, second)
-		self.assertEqual(frappe.db.get_value("OTP", name, "otp_code"), code)
-		self.assertEqual(frappe.get_meta("OTP").module, "Ghost")
+		self.assertEqual(frappe.db.get_value("Ghost OTP", name, "otp_code"), code)
+		self.assertEqual(frappe.get_meta("Ghost OTP").module, "Ghost")
 		self.assertEqual(frappe.get_single("Ghost Settings").client_id, self.client.name)
 		self.assertTrue(frappe.get_single("Ghost Settings").enable_otp_login)
 

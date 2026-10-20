@@ -29,7 +29,7 @@ class TestGhostTasks(GhostIntegrationCase):
 
 	def test_scheduler_expires_elapsed_codes(self):
 		self.code()
-		name = frappe.db.get_value("OTP", {"email": self.email}, "name")
-		frappe.db.set_value("OTP", name, "expiry", add_days(now_datetime(), -1))
+		name = frappe.db.get_value("Ghost OTP", {"email": self.email}, "name")
+		frappe.db.set_value("Ghost OTP", name, "expiry", add_days(now_datetime(), -1))
 		expire_otps()
-		self.assertEqual(frappe.db.get_value("OTP", name, "status"), "Expired")
+		self.assertEqual(frappe.db.get_value("Ghost OTP", name, "status"), "Expired")

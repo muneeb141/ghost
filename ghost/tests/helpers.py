@@ -11,7 +11,7 @@ except ImportError:
 	from frappe.tests.utils import FrappeTestCase as IntegrationTestCase
 
 from ghost.api.ghost import convert_to_real_user, create_ghost_session
-from ghost.ghost.doctype.otp.otp import generate
+from ghost.ghost.doctype.ghost_otp.ghost_otp import generate
 
 
 class GhostIntegrationCase(IntegrationTestCase):

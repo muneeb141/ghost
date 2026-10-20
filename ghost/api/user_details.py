@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from ghost.ghost.doctype.otp.otp import verify as verify_otp
+from ghost.ghost.doctype.ghost_otp.ghost_otp import verify as verify_otp
 
 
 def _current_user():

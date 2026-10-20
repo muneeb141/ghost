@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestOTP(FrappeTestCase):
+class TestGhostOTP(FrappeTestCase):
 	pass

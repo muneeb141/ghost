@@ -1,4 +1,5 @@
 [pre_model_sync]
+ghost.patches.v2_0.rename_otp_to_ghost_otp
 # Patches added in this section will be executed before doctypes are migrated
 # Read docs to understand patches: https://frappeframework.com/docs/v14/user/en/database-migrations
 

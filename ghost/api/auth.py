@@ -3,7 +3,7 @@ from frappe import _
 from frappe.rate_limiter import rate_limit
 from frappe.utils import add_to_date, now_datetime
 
-from ghost.ghost.doctype.otp.otp import verify as ghost_verify_otp
+from ghost.ghost.doctype.ghost_otp.ghost_otp import verify as ghost_verify_otp
 from ghost.security import (
 	normalize_recipients,
 	require_enabled_user,
