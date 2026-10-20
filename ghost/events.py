@@ -8,9 +8,7 @@ from frappe.utils import now_datetime
 
 def generate_signature(payload_body, secret):
 	"""Return the HMAC-SHA256 hex digest of the raw webhook payload body."""
-	return hmac.new(
-		secret.encode("utf-8"), payload_body.encode("utf-8"), hashlib.sha256
-	).hexdigest()
+	return hmac.new(secret.encode("utf-8"), payload_body.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def on_ghost_converted(ghost_email, real_email, conversion_mode, tokens=None):
@@ -38,6 +36,7 @@ def on_ghost_converted(ghost_email, real_email, conversion_mode, tokens=None):
 			frappe.enqueue(
 				"ghost.events.send_webhook",
 				queue="short",
+				enqueue_after_commit=True,
 				url=settings.webhook_url,
 				secret=settings.get_password("webhook_secret"),
 				payload=payload,
@@ -45,7 +44,7 @@ def on_ghost_converted(ghost_email, real_email, conversion_mode, tokens=None):
 
 		# 2. Publish a Frappe realtime event for connected clients.
 		if settings.enable_realtime_events:
-			frappe.publish_realtime("ghost_converted", payload) # nosemgrep: frappe-realtime-pick-room - global event broadcast intended for live client portal conversion animations and analytics updates
+			frappe.publish_realtime("ghost_converted", payload, user=real_email, after_commit=True)
 
 		# 3. Fire Frappe hooks registered by other apps. One bad listener must
 		# not break the remaining listeners or the conversion.
@@ -58,9 +57,9 @@ def on_ghost_converted(ghost_email, real_email, conversion_mode, tokens=None):
 					conversion_mode=conversion_mode,
 				)
 			except Exception as e:
-				frappe.log_error(f"Ghost conversion hook {handler} failed: {str(e)}")
+				frappe.log_error(f"Ghost conversion hook {handler} failed: {e!s}")
 	except Exception as e:
-		frappe.log_error(f"Ghost conversion event dispatch failed: {str(e)}")
+		frappe.log_error(f"Ghost conversion event dispatch failed: {e!s}")
 
 
 def send_webhook(url, secret, payload):
@@ -80,4 +79,4 @@ def send_webhook(url, secret, payload):
 	try:
 		make_post_request(url, data=body, headers=headers)
 	except Exception as e:
-		frappe.log_error(f"Ghost webhook delivery to {url} failed: {str(e)}")
+		frappe.log_error(f"Ghost webhook delivery to {url} failed: {e!s}")
