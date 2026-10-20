@@ -1,168 +1,76 @@
 import frappe
-import unittest
-from ghost.api.auth import login, refresh_bearer_token, generate_oauth_tokens
-from ghost.api.ghost import create_ghost_session
-from ghost.ghost.doctype.otp.otp import verify as ghost_verify_otp
-from ghost.api.otp import send_otp
+from frappe.utils import add_to_date, now_datetime
 
-class TestGhostAuth(unittest.TestCase):
-	def setUp(self):
-		# 1. Setup Ghost Settings
-		settings = frappe.get_single("Ghost Settings")
-		settings.enable_ghost_feature = 1
-		# Ensure OTP Defaults
-		settings.expiry_time_minutes = 10
-		settings.max_otp_attempts = 50
-		settings.otp_length = 6
-		settings.otp_code_type = "Numeric"
-		settings.otp_delivery_type = "Email"
-		settings.verify_otp_on_conversion = 0
-		settings.default_user_role = "Customer"
-		settings.sandbox_mode = 0
-		settings.save()
-		
-		# Ensure Ghost Role exists
-		if not frappe.db.exists("Role", "Ghost"):
-			frappe.get_doc({"doctype": "Role", "role_name": "Ghost"}).insert(ignore_permissions=True)
-		
-		# Ensure Customer Role exists (for default role test)
-		if not frappe.db.exists("Role", "Customer"):
-			frappe.get_doc({"doctype": "Role", "role_name": "Customer"}).insert(ignore_permissions=True)
+from ghost.api.auth import generate_oauth_tokens, login, refresh_bearer_token
+from ghost.tests.helpers import GhostIntegrationCase
 
-		# Clear OTPs for clean state
-		frappe.db.delete("OTP")
-		frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test harness to clear OTP table across isolated transactions
 
+class TestGhostAuth(GhostIntegrationCase):
 	def test_direct_signup_and_login(self):
-		"""
-		Test Scenario: Guest User -> Send OTP -> Login (New User Created)
-		"""
-		email = "new_user_auth@example.com"
-		if frappe.db.exists("User", email):
-			frappe.delete_doc("User", email, force=True)
+		code = self.code()
+		with self.actor("Guest"):
+			result = login(code, email=self.email, first_name="Verified", last_name="Person")
+		user = frappe.get_doc("User", result["user"])
+		self.assertEqual(user.first_name, "Verified")
+		self.assertEqual(user.user_type, "Website User")
+		self.assertNotIn("access_token", result)
 
-		# 1. Send OTP (Simulate)
-		# We cheat and just look at the DB, assuming send_otp works (tested elsewhere)
-		send_otp(email=email, purpose="Conversion")
-		otp_code = frappe.db.get_value("OTP", {"email": email, "purpose": "Conversion"}, "otp_code")
-		
-		# 2. Login (This should CREATE the user)
-		# We simulate guest session
-		frappe.session.user = "Guest"
-		
-		response = login(otp=otp_code, email=email, first_name="New", last_name="Guy")
-		
-		# 3. Verify
-		self.assertEqual(response["status"], "success")
-		self.assertEqual(response["user"], email)
-		
-		# Check User Doc
-		user = frappe.get_doc("User", email)
-		self.assertEqual(user.first_name, "New")
-		self.assertEqual(user.last_name, "Guy")
-		self.assertIn("Customer", [r.role for r in user.roles], "Should have default role from settings")
-
-	def test_ghost_conversion_flow(self):
-		"""
-		Test Scenario: Ghost User -> Login -> Converted to Real User
-		"""
-		# 1. Create Ghost
-		ghost_data = create_ghost_session()
-		ghost_email = ghost_data["user"]
-		
-		# Simulate Ghost Session
-		frappe.session.user = ghost_email
-		
-		# 2. Target Real Email
-		real_email = "converted_auth@example.com"
-		if frappe.db.exists("User", real_email):
-			frappe.delete_doc("User", real_email, force=True, ignore_permissions=True)
-			
-		# 3. Login
-		# Note: We need a valid OTP for the REACT email
-		send_otp(email=real_email, purpose="Conversion")
-		otp_code = frappe.db.get_value("OTP", {"email": real_email}, "otp_code")
-
-		response = login(otp=otp_code, email=real_email)
-		
-		# 4. Verify
-		self.assertEqual(response["status"], "success")
-		self.assertEqual(response["user"], real_email)
-		
-		# Ghost should be gone
-		self.assertFalse(frappe.db.exists("User", ghost_email))
-		# Real should exist
-		self.assertTrue(frappe.db.exists("User", real_email))
+	def test_existing_account_email_login(self):
+		self.new_user()
+		code = self.code()
+		with self.actor("Guest"):
+			self.assertEqual(login(code, email=self.email)["user"], self.email)
+		self.assertEqual(frappe.db.count("User", {"email": self.email}), 1)
 
 	def test_client_id_token_generation(self):
-		"""
-		Test Scenario: Login with client_id -> Returns Access Token
-		"""
-		email = "token_user@example.com"
-		if not frappe.db.exists("User", email):
-			user = frappe.new_doc("User")
-			user.email = email
-			user.first_name = "Token"
-			user.save(ignore_permissions=True)
+		self.new_user()
+		code = self.code()
+		with self.actor("Guest"):
+			result = login(code, email=self.email, client_id=self.client.name)
+		self.assertEqual(
+			frappe.db.get_value("OAuth Bearer Token", result["access_token"], "user"), self.email
+		)
+		self.assertEqual(frappe.db.count("OAuth Bearer Token", {"user": self.email, "status": "Active"}), 1)
 
-		# 1. Generate OTP
-		send_otp(email=email, purpose="Conversion")
-		otp_code = frappe.db.get_value("OTP", {"email": email}, "otp_code")
-		
-		# 2. Create Real Client ID
-		client_id = "test_client_id"
-		if not frappe.db.exists("OAuth Client", client_id):
-			c = frappe.new_doc("OAuth Client")
-			c.client_id = client_id
-			c.app_name = "Test App"
-			c.skat = "1" # Skip Authorization
-			c.default_redirect_uri = "http://localhost"
-			c.redirect_uris = "http://localhost"
-			c.save(ignore_permissions=True)
-		
-		# 3. Login
-		frappe.session.user = "Guest"
-		response = login(otp=otp_code, email=email, client_id=client_id)
-		
-		# 4. Verify Token
-		self.assertIn("access_token", response)
-		self.assertIn("refresh_token", response)
-		
-		# Verify Token Doc exists
-		# Fetch by unique access_token
-		token_doc = frappe.db.get_value("OAuth Bearer Token", {"access_token": response["access_token"]}, ["name", "client"], as_dict=True)
-		self.assertIsNotNone(token_doc, "Token document not found in DB")
-		# We don't strictly enforce client check here as naming series might differ, but token creation is success.
-		# self.assertEqual(token_doc.client, client_id)
+	def test_cookie_conversion_does_not_leave_orphan_bearer_credentials(self):
+		source = self.new_ghost()["user"]
+		code = self.code()
+		with self.actor(source):
+			result = login(code, email=self.email)
+		self.assertEqual(result["user"], self.email)
+		self.assertEqual(frappe.db.count("OAuth Bearer Token", {"user": self.email, "status": "Active"}), 0)
+
+	def test_ghost_conversion_issues_only_the_requested_token_pair(self):
+		source = self.new_ghost()["user"]
+		code = self.code()
+		with self.actor(source):
+			result = login(code, email=self.email, client_id=self.client.name)
+		self.assertTrue(result["access_token"])
+		self.assertEqual(frappe.db.count("OAuth Bearer Token", {"user": self.email, "status": "Active"}), 1)
+
+	def test_wrong_oauth_client_is_denied(self):
+		with self.actor("Guest"), self.assertRaises(frappe.PermissionError):
+			login("not-used", email=self.email, client_id="unconfigured")
 
 	def test_refresh_bearer_token_returns_user(self):
-		"""
-		Test Scenario: Refresh token response includes the user field.
-		"""
-		email = "refresh_user@example.com"
-		if not frappe.db.exists("User", email):
-			user = frappe.new_doc("User")
-			user.email = email
-			user.first_name = "Refresh"
-			user.save(ignore_permissions=True)
+		self.new_user()
+		tokens = generate_oauth_tokens(self.email, self.client.name)
+		result = refresh_bearer_token(tokens["refresh_token"])
+		self.assertEqual(result["user"], self.email)
+		self.assertNotEqual(tokens["refresh_token"], result["refresh_token"])
 
-		client = frappe.db.get_value("OAuth Client", {"app_name": "Test Refresh App"}, "name")
-		if not client:
-			c = frappe.new_doc("OAuth Client")
-			c.app_name = "Test Refresh App"
-			c.skat = "1"
-			c.default_redirect_uri = "http://localhost"
-			c.redirect_uris = "http://localhost"
-			c.save(ignore_permissions=True)
-			client = c.name
+	def test_refresh_expiry_is_checked_at_exact_boundary(self):
+		self.new_user()
+		tokens = generate_oauth_tokens(self.email)
+		frappe.db.set_value(
+			"OAuth Bearer Token", tokens["access_token"], "creation", add_to_date(now_datetime(), days=-31)
+		)
+		with self.assertRaises(frappe.AuthenticationError):
+			refresh_bearer_token(tokens["refresh_token"])
 
-		tokens = generate_oauth_tokens(email, client)
-		self.assertIn("refresh_token", tokens)
-
-		response = refresh_bearer_token(tokens["refresh_token"])
-		self.assertEqual(response["status"], "success")
-		self.assertIn("user", response)
-		self.assertEqual(response["user"], email)
-
-	def tearDown(self):
-		frappe.set_user("Administrator")
+	def test_signup_policy_does_not_block_existing_account_login(self):
+		self.new_user()
+		self.configure(allow_public_signup=0)
+		code = self.code()
+		with self.actor("Guest"):
+			self.assertEqual(login(code, email=self.email)["user"], self.email)

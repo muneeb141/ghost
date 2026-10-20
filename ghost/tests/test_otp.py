@@ -1,123 +1,85 @@
+from unittest.mock import patch
+
 import frappe
-import unittest
-from ghost.ghost.doctype.otp.otp import generate, verify
+from frappe.utils import add_to_date, now_datetime
+
+from ghost.api.auth import login
 from ghost.api.otp import send_otp, validate_otp
+from ghost.ghost.doctype.otp.otp import generate, verify
+from ghost.tests.helpers import GhostIntegrationCase
 
-class TestFrappeIdentityOTP(unittest.TestCase):
-	def setUp(self):
-		settings = frappe.get_single("Ghost Settings")
-		settings.max_otp_attempts = 5
-		settings.otp_delivery_type = "Email"
-		settings.otp_code_type = "Numeric"
-		settings.otp_length = 6
-		settings.sandbox_mode = 0
-		settings.save()
 
+class TestFrappeIdentityOTP(GhostIntegrationCase):
 	def test_otp_flow(self):
-		email = "test_otp@guest.local"
-		
+		with patch("ghost.ghost.doctype.otp.otp.send_otp", return_value={"status": "sent"}):
+			response = send_otp(email=self.email, purpose="Sign Up")
+		self.assertEqual(set(response), {"status", "message"})
+		name = frappe.db.get_value("OTP", {"email": self.email, "purpose": "Sign Up"}, "name")
+		code = frappe.db.get_value("OTP", name, "otp_code")
+		self.assertEqual(validate_otp(code, email=self.email, purpose="Sign Up")["status"], "success")
+		with self.assertRaises(frappe.ValidationError):
+			validate_otp(code, email=self.email, purpose="Sign Up")
+
+	def test_purposes_do_not_expire_each_other(self):
+		login_code = self.code()
+		conversion_code = self.code(purpose="Conversion")
+		self.assertTrue(verify(login_code, email=self.email)["valid"])
+		self.assertTrue(verify(conversion_code, email=self.email, purpose="Conversion")["valid"])
+
+	def test_resend_invalidates_previous_code_of_same_purpose(self):
+		self.code()
+		latest = self.code()
+		self.assertEqual(
+			frappe.db.count("OTP", {"email": self.email, "purpose": "Login", "status": "Valid"}), 1
+		)
+		self.assertTrue(verify(latest, email=self.email)["valid"])
+
+	def test_combined_email_phone_auth_challenge_is_rejected(self):
+		self.configure(otp_delivery_type="Both")
+		with self.assertRaises(frappe.ValidationError):
+			generate(email=self.email, phone="+910000000001", purpose="Login", send=False)
+
+	def test_legacy_combined_challenge_cannot_prove_email_only(self):
+		self.new_user()
+		code = self.code()
+		name = frappe.db.get_value(
+			"OTP", {"email": self.email, "purpose": "Login", "status": "Valid"}, "name"
+		)
+		frappe.db.set_value("OTP", name, "phone", "+910000000001")
+		with self.actor("Guest"), self.assertRaises(frappe.ValidationError):
+			login(code, email=self.email)
+
+	def test_both_delivery_setting_selects_the_one_requested_recipient(self):
+		self.configure(otp_delivery_type="Both")
+		result = generate(email=self.email, purpose="Login", send=False)
+		self.assertEqual(frappe.db.get_value("OTP", result["name"], "delivery_method"), "Email")
+
+	def test_expired_codes_are_not_accepted(self):
+		code = self.code()
+		name = frappe.db.get_value("OTP", {"email": self.email, "status": "Valid"}, "name")
+		frappe.db.set_value("OTP", name, "expiry", add_to_date(now_datetime(), minutes=-1))
+		with self.assertRaises(frappe.ValidationError):
+			verify(code, email=self.email)
 
 
-		# 1. Send OTP
-		frappe.local.response = frappe._dict()
-		send_otp(email=email, purpose="Sign Up")
-		response = frappe.local.response
-		if response.get("http_status_code") != 200:
-			print(f"\n[DEBUG] Send OTP Failed: {response.get('message')} - {response.get('error')}")
-		self.assertEqual(response.get("http_status_code"), 200, f"Send OTP Failed: {response.get('message')}")
-
-
-		
-		# Find the OTP
-		otp_name = frappe.db.get_value("OTP", {"email": email, "status": "Valid"}, "name")
-		self.assertTrue(otp_name, "OTP Document should be created")
-
-		otp_doc = frappe.get_doc("OTP", otp_name)
-		code = otp_doc.otp_code
-		
-		# 2. Verify Valid OTP
-		# Note: validate_otp calls verify_otp which might raise exceptions or return None.
-		# The API wrapper returns a dict.
-		frappe.local.response = frappe._dict()
-		validate_otp(otp_code=code, email=email, purpose="Sign Up")
-		response = frappe.local.response
-		self.assertEqual(response.get("http_status_code"), 200)
-
-		
-		# 3. Verify Invalid OTP
-		frappe.local.response = frappe._dict()
-		validate_otp(otp_code="000000", email=email, purpose="Sign Up")
-		response_bad = frappe.local.response
-		self.assertNotEqual(response_bad.get("http_status_code"), 200)
-
-
-
-		# 4. Cleanup
-		frappe.delete_doc("OTP", otp_name)
-
-	def tearDown(self):
-		pass
-
-
-class TestSandboxOTP(unittest.TestCase):
-	"""Tests for Sandbox Mode: fixed OTP bypass, no DB interaction."""
-
-	SANDBOX_OTP = "000141"
-
-	def _enable_sandbox(self):
-		# Use direct DB writes so this works even before bench migrate has
-		# added the new columns to the test database schema.
-		try:
-			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 1)
-			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_otp", self.SANDBOX_OTP)
-			frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test runner to persist sandbox config before executing test assertions
-		except Exception:
-			# If the column doesn't exist yet (pre-migrate), run migrate first.
-			from frappe.migrate import migrate
-			migrate()
-			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 1)
-			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_otp", self.SANDBOX_OTP)
-			frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test runner to persist sandbox config
-		# Bust cache so get_cached_doc picks up the change
-		frappe.clear_cache(doctype="Ghost Settings")
-
-	def _disable_sandbox(self):
-		try:
-			frappe.db.set_value("Ghost Settings", "Ghost Settings", "sandbox_mode", 0)
-			frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test runner teardown
-		except Exception:
-			pass
-		frappe.clear_cache(doctype="Ghost Settings")
-
-	def tearDown(self):
-		# Always restore sandbox=off so other test classes are not affected.
-		self._disable_sandbox()
-
-	# ── Tests ────────────────────────────────────────────────────────────────
-
+class TestSandboxOTP(GhostIntegrationCase):
 	def test_sandbox_generate_returns_fixed_otp(self):
-		"""generate() must return the static sandbox OTP without touching the DB."""
-		self._enable_sandbox()
-
-		result = generate(email="qa@test.local", purpose="Login")
-
-		self.assertTrue(result.get("sandbox"), "Response must include sandbox=True")
-		self.assertEqual(result["otp_code"], self.SANDBOX_OTP)
-		self.assertIsNone(result["name"], "No OTP DB record should be created in sandbox mode")
-		self.assertFalse(result["sent"], "No delivery should occur in sandbox mode")
+		self.configure(sandbox_mode=1, sandbox_otp="000141")
+		result = generate(email=self.email)
+		self.assertEqual(result["otp_code"], "000141")
+		self.assertIsNone(result["name"])
+		self.assertFalse(result["sent"])
 
 	def test_sandbox_verify_accepts_fixed_otp(self):
-		"""verify() must accept the exact sandbox OTP and return valid=True."""
-		self._enable_sandbox()
-
-		result = verify(otp_code=self.SANDBOX_OTP, email="qa@test.local", purpose="Login")
-
-		self.assertTrue(result.get("valid"))
-		self.assertTrue(result.get("sandbox"), "Response must include sandbox=True")
+		self.configure(sandbox_mode=1, sandbox_otp="000141")
+		self.assertTrue(verify("000141", email=self.email)["sandbox"])
 
 	def test_sandbox_verify_rejects_wrong_otp(self):
-		"""verify() must reject any OTP that is not the sandbox OTP."""
-		self._enable_sandbox()
-
+		self.configure(sandbox_mode=1, sandbox_otp="000141")
 		with self.assertRaises(frappe.ValidationError):
-			verify(otp_code="000000", email="qa@test.local", purpose="Login")
+			verify("wrong", email=self.email)
+
+	def test_production_rejects_a_saved_sandbox_configuration(self):
+		self.configure(sandbox_mode=1, sandbox_otp="000141")
+		with patch.dict(frappe.flags, {"in_test": False}), self.assertRaises(frappe.PermissionError):
+			generate(email=self.email)

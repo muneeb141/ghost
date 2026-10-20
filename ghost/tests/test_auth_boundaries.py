@@ -12,6 +12,7 @@ from ghost import security
 from ghost.api import auth, ghost, magic_link, social
 from ghost.api import otp as otp_api
 from ghost.ghost.doctype.otp import otp
+from ghost.tests.unit_helpers import local_attribute
 
 
 class TestAuthenticationBoundaries(unittest.TestCase):
@@ -39,7 +40,7 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 			raise exception(message)
 
 		patchers = [
-			patch.object(frappe.local, "flags", frappe._dict(in_test=False), create=True),
+			local_attribute("flags", frappe._dict(in_test=False)),
 			patch.object(frappe, "request", None),
 			patch.object(frappe, "get_system_settings", return_value="UTC"),
 			patch.object(frappe, "db", self.db),
@@ -53,8 +54,8 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 			for m in (security, auth, ghost, magic_link, otp_api, social, otp)
 		]
 		for p in patchers:
-			p.start()
-			self.addCleanup(p.stop)
+			p.__enter__()
+			self.addCleanup(p.__exit__, None, None, None)
 
 	def test_existing_email_is_rejected_before_user_or_token_operations(self):
 		with (
@@ -142,7 +143,7 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 			patch.object(auth, "ghost_verify_otp") as verify,
 			patch.object(auth, "require_enabled_user"),
 			patch.object(auth, "generate_oauth_tokens") as tokens,
-			patch.object(frappe.local, "request", None, create=True),
+			local_attribute("request", None),
 		):
 			result = auth.login("123456", email="Owner@Example.Invalid")
 		verify.assert_called_once_with(
@@ -294,7 +295,7 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 			headers={"Origin": "https://attacker.invalid"}, scheme="https", host="portal.invalid"
 		)
 		with (
-			patch.object(frappe.local, "request", request, create=True),
+			local_attribute("request", request),
 			patch.object(frappe, "conf", frappe._dict(allow_cors=["*"])),
 		):
 			with self.assertRaises(frappe.PermissionError):
@@ -305,7 +306,7 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 			headers={"Origin": "https://portal.invalid"}, scheme="https", host="backend.invalid"
 		)
 		with (
-			patch.object(frappe.local, "request", request, create=True),
+			local_attribute("request", request),
 			patch.object(frappe, "conf", frappe._dict(allow_cors=["https://portal.invalid"])),
 		):
 			security.require_trusted_login_origin()

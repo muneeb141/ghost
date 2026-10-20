@@ -26,9 +26,25 @@ def run(site):
 
 	sites_path = str(sites_dir)
 	email = f"ghost-http-{uuid.uuid4().hex}@example.invalid"
-	fields = ("enable_otp_login", "allow_public_signup", "sandbox_mode", "max_otp_attempts")
+	fields = (
+		"enable_otp_login",
+		"allow_public_signup",
+		"sandbox_mode",
+		"max_otp_attempts",
+		"enable_ghost_feature",
+		"client_id",
+		"ghost_role",
+		"ghost_email_domain",
+		"default_user_role",
+		"enable_webhooks",
+		"enable_lead_capture",
+		"enable_conversion_logging",
+	)
 	original = None
 	otp_name = None
+	ghost_data = None
+	client_name = None
+	ghost_target = "converted-" + email
 	try:
 		frappe.init(site=site, sites_path=sites_path)
 		frappe.connect()
@@ -37,10 +53,36 @@ def run(site):
 		frappe.set_user("Administrator")
 		settings = frappe.get_single("Ghost Settings")
 		original = {field: settings.get(field) for field in fields}
-		settings.update(dict(enable_otp_login=1, allow_public_signup=1, sandbox_mode=0, max_otp_attempts=5))
+		client_doc = frappe.get_doc(
+			{
+				"doctype": "OAuth Client",
+				"app_name": email,
+				"default_redirect_uri": "https://example.invalid/callback",
+				"redirect_uris": "https://example.invalid/callback",
+				"scopes": "all",
+			}
+		).insert()
+		client_name = client_doc.name
+		settings.update(
+			dict(
+				enable_otp_login=1,
+				allow_public_signup=1,
+				sandbox_mode=0,
+				max_otp_attempts=5,
+				enable_ghost_feature=1,
+				client_id=client_name,
+				ghost_role="Ghost",
+				ghost_email_domain="guest.local",
+				default_user_role=None,
+				enable_webhooks=0,
+				enable_lead_capture=0,
+				enable_conversion_logging=0,
+			)
+		)
 		settings.save()
 		code = generate(email=email, purpose="Login", send=False)
 		otp_name = code["name"]
+		ghost_code = generate(email=ghost_target, purpose="Login", send=False)
 		frappe.db.commit()
 		frappe.destroy()
 		client = Client(application, Response, use_cookies=True)
@@ -67,6 +109,23 @@ def run(site):
 			assert replay.status_code >= 400, "Consumed OTP authenticated another browser"
 			who = other.get("/api/method/frappe.auth.get_logged_user", base_url=base)
 			assert who.status_code == 403
+		ghost_client = Client(application, Response, use_cookies=True)
+		created = ghost_client.post(
+			"/api/method/ghost.api.ghost.create_ghost_session", json={}, base_url=base
+		)
+		assert created.status_code == 200, f"Ghost creation HTTP {created.status_code}"
+		ghost_data = created.json["message"]
+		converted = ghost_client.post(
+			"/api/method/ghost.api.auth.login",
+			json={"email": ghost_target, "otp": ghost_code["otp_code"]},
+			headers={"Authorization": "Bearer " + ghost_data["access_token"]},
+			base_url=base,
+		)
+		assert converted.status_code == 200, f"Ghost login HTTP {converted.status_code}: {converted.json}"
+		assert "access_token" not in converted.json["message"]
+		who = ghost_client.get("/api/method/frappe.auth.get_logged_user", base_url=base)
+		assert who.status_code == 200 and who.json["message"] == ghost_target
+		print("PASS: HTTP owned Ghost conversion establishes the verified cookie session")
 		print(
 			"PASS: HTTP email OTP login, HttpOnly session, authenticated follow-up, no bearer tokens, cross-browser replay rejected"
 		)
@@ -78,9 +137,16 @@ def run(site):
 			frappe.set_user("Administrator")
 			if otp_name:
 				frappe.db.delete("OTP", {"name": otp_name})
-			if frappe.db.exists("User", email):
-				frappe.delete_doc("User", email, force=True, ignore_permissions=True)
+			for identity in (email, ghost_target, ghost_data["user"] if ghost_data else None):
+				if not identity:
+					continue
+				frappe.db.delete("OTP", {"email": identity})
+				frappe.db.delete("OAuth Bearer Token", {"user": identity})
+				if frappe.db.exists("User", identity):
+					frappe.delete_doc("User", identity, force=True, ignore_permissions=True)
 			frappe.get_single("Ghost Settings").update(original).save()
+			if client_name:
+				frappe.delete_doc("OAuth Client", client_name, force=True, ignore_permissions=True)
 			frappe.db.commit()
 			frappe.destroy()
 

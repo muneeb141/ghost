@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import frappe
 
 from ghost.api import user_details
+from ghost.tests.unit_helpers import local_attribute
 
 
 class TestUserDetails(unittest.TestCase):
@@ -13,12 +14,12 @@ class TestUserDetails(unittest.TestCase):
 			raise exception(message)
 
 		for patcher in (
-			patch.object(frappe.local, "flags", SimpleNamespace(in_test=False), create=True),
+			local_attribute("flags", frappe._dict(in_test=False)),
 			patch.object(user_details, "_", lambda message: message),
 			patch.object(frappe, "throw", side_effect=raise_error),
 		):
-			patcher.start()
-			self.addCleanup(patcher.stop)
+			patcher.__enter__()
+			self.addCleanup(patcher.__exit__, None, None, None)
 
 	def test_guest_cannot_read_or_update(self):
 		with patch.object(frappe, "session", SimpleNamespace(user="Guest")):
@@ -70,7 +71,9 @@ class TestUserDetails(unittest.TestCase):
 		db.get_value.return_value = None
 		with patch.object(frappe, "session", SimpleNamespace(user="owner@example.com")):
 			with patch.object(frappe, "db", db):
-				with patch.object(user_details, "verify_otp", side_effect=frappe.ValidationError("Invalid OTP")):
+				with patch.object(
+					user_details, "verify_otp", side_effect=frappe.ValidationError("Invalid OTP")
+				):
 					with self.assertRaises(frappe.ValidationError):
 						user_details.update_mobile_number("+911234567890", "bad-code")
 

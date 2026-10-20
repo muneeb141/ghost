@@ -1,83 +1,61 @@
+from unittest.mock import Mock, patch
+
 import frappe
-from frappe.tests.utils import FrappeTestCase
+
 from ghost.api.social import convert_with_google
-from ghost.api.ghost import create_ghost_session
-from unittest.mock import patch, MagicMock
+from ghost.tests.helpers import GhostIntegrationCase
 
-class TestSocialLogin(FrappeTestCase):
-    def setUp(self):
-        self.settings = frappe.get_single("Ghost Settings")
-        self.settings.enable_ghost_feature = 1
-        self.settings.enable_social_login = 1
-        self.settings.google_client_id = "test-client-id"
-        self.settings.verify_otp_on_conversion = 1
-        self.settings.sandbox_mode = 0
-        self.settings.save()
-        
-        frappe.db.sql("DELETE FROM `tabUser` WHERE email IN ('social_ghost@guest.local', 'social_real@example.com')")
-        
-        session = create_ghost_session("social_ghost@guest.local")
-        self.ghost_email = session["user"]
-        self.real_email = "social_real@example.com"
-        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in test harness to persist cleaned test state
 
-    def test_convert_with_google_fails_when_disabled(self):
-        self.settings.enable_social_login = 0
-        self.settings.save()
-        
-        with self.assertRaises(frappe.PermissionError):
-            convert_with_google(self.ghost_email, "some-token")
+class TestSocialLogin(GhostIntegrationCase):
+	def setUp(self):
+		super().setUp()
+		self.configure(enable_social_login=1, google_client_id="test-client")
+		self.source = self.new_ghost()["user"]
 
-    @patch("ghost.api.social.requests.get")
-    def test_convert_with_google_success(self, mock_get):
-        # Mock successful Google tokeninfo response
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "aud": "test-client-id",
-            "email_verified": "true",
-            "email": self.real_email,
-            "given_name": "John",
-            "family_name": "Doe"
-        }
-        mock_get.return_value = mock_response
+	def response(self, **claims):
+		return Mock(
+			status_code=200,
+			json=lambda: {
+				"aud": "test-client",
+				"email_verified": True,
+				"email": self.email,
+				"given_name": "Verified",
+				"family_name": "Person",
+				**claims,
+			},
+		)
 
-        # Should bypass OTP and convert successfully
-        response = convert_with_google(self.ghost_email, "valid-token")
-        
-        self.assertEqual(response["user"], self.real_email)
-        self.assertEqual(response["conversion_mode"], "rename")
-        self.assertTrue(frappe.db.exists("User", self.real_email))
-        
-        # Verify name was extracted
-        user = frappe.get_doc("User", self.real_email)
-        self.assertEqual(user.first_name, "John")
-        self.assertEqual(user.last_name, "Doe")
+	def test_convert_with_google_fails_when_disabled(self):
+		self.configure(enable_social_login=0)
+		with self.actor(self.source), self.assertRaises(frappe.PermissionError):
+			convert_with_google(self.source, "not-used")
 
-    @patch("ghost.api.social.requests.get")
-    def test_convert_with_google_invalid_audience(self, mock_get):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "aud": "wrong-client-id",
-            "email_verified": "true",
-            "email": self.real_email
-        }
-        mock_get.return_value = mock_response
+	def test_convert_with_google_success(self):
+		with self.actor(self.source), patch("ghost.api.social.requests.get", return_value=self.response()):
+			result = convert_with_google(self.source, "mock-provider-token")
+		self.assertEqual(result["user"], self.email)
+		self.assertEqual(frappe.db.get_value("User", self.email, "first_name"), "Verified")
+		self.assertFalse(frappe.db.exists("User", self.source))
 
-        with self.assertRaises(frappe.AuthenticationError):
-            convert_with_google(self.ghost_email, "valid-token")
+	def test_convert_with_google_invalid_audience(self):
+		with (
+			self.actor(self.source),
+			patch("ghost.api.social.requests.get", return_value=self.response(aud="wrong")),
+		):
+			with self.assertRaises(frappe.AuthenticationError):
+				convert_with_google(self.source, "mock-provider-token")
+		self.assertFalse(frappe.db.exists("User", self.email))
 
-    @patch("ghost.api.social.requests.get")
-    def test_convert_with_google_unverified_email(self, mock_get):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "aud": "test-client-id",
-            "email_verified": "false",
-            "email": self.real_email
-        }
-        mock_get.return_value = mock_response
+	def test_convert_with_google_unverified_email(self):
+		with (
+			self.actor(self.source),
+			patch("ghost.api.social.requests.get", return_value=self.response(email_verified=False)),
+		):
+			with self.assertRaises(frappe.AuthenticationError):
+				convert_with_google(self.source, "mock-provider-token")
 
-        with self.assertRaises(frappe.AuthenticationError):
-            convert_with_google(self.ghost_email, "valid-token")
+	def test_guest_cannot_claim_source_with_valid_target_token(self):
+		with self.actor("Guest"), patch("ghost.api.social.requests.get") as provider:
+			with self.assertRaises(frappe.PermissionError):
+				convert_with_google(self.source, "mock-provider-token")
+		provider.assert_not_called()
