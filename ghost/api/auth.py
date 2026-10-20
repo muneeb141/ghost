@@ -34,7 +34,7 @@ def login(otp, email=None, mobile_no=None, first_name=None, last_name=None, clie
 		from ghost.api.ghost import _convert_verified_user
 
 		user = email or f"{mobile_no}@mobile.login"
-		_convert_verified_user(actor, user, first_name, last_name)
+		_convert_verified_user(actor, user, first_name, last_name, issue_tokens=False)
 	else:
 		filters = {"email": email} if email else {"mobile_no": mobile_no}
 		user = frappe.db.get_value("User", filters, "name")

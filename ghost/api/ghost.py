@@ -70,7 +70,7 @@ def convert_to_real_user(
 
 
 def _convert_verified_user(
-	ghost_email, real_email, first_name=None, last_name=None, conversion_channel="OTP"
+	ghost_email, real_email, first_name=None, last_name=None, conversion_channel="OTP", issue_tokens=True
 ):
 	"""
 	Converts a Ghost User to a Real User using one of two conversion modes:
@@ -150,7 +150,7 @@ def _convert_verified_user(
 	)
 
 	token_generation_start = time.monotonic()
-	new_tokens = generate_oauth_tokens(real_email)
+	new_tokens = generate_oauth_tokens(real_email) if issue_tokens else None
 	logger.info(
 		f"Ghost conversion token generation duration_ms={(time.monotonic() - token_generation_start) * 1000:.2f} "
 		f"ghost={ghost_email} real={real_email}"
