@@ -1,3 +1,7 @@
+> Local authentication repair candidate: see [the repair contract](docs/AUTHENTICATION_HARDENING.md)
+> for the security changes, API migration, tests and remaining release gates. Ghost remains
+> a general authentication app; this candidate is not a published release.
+
 # 👻 Ghost — Seamless Anonymous Identity & Conversion Engine for Frappe
 
 **Let users interact anonymously, convert them when they see value.**
