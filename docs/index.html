@@ -30,7 +30,8 @@
       <strong>Existing installations must read the upgrade guide before updating.</strong>
       Back up and rehearse on staging, update client contracts, configure delivery and explicitly
       enable the new OTP Login/Public Signup policy switches; their defaults are disabled.
-      The internal OTP DocType remains unchanged. Follow the <a href="API_MIGRATION.md">migration matrix and cutover checklist</a>.
+      The internal DocType changes from OTP to Ghost OTP through a versioned migration.
+      Update direct DocType/REST/SQL consumers before cutover. Follow the <a href="API_MIGRATION.md">migration matrix and cutover checklist</a>.
       Read the <a href="COMPATIBILITY_REPORT.md">actual verification results and remaining gates</a>.</p>
     </div>
     <section id="getting-started">
@@ -90,12 +91,13 @@ await fetch('/api/method/ghost.api.auth.login', {
     </section>
     <section id="doctypes">
       <h2>Data and the OTP name</h2>
-      <p>The internal DocType remains <strong>OTP</strong>, with the table <code>tabOTP</code> and
-        Python path <code>ghost.ghost.doctype.otp.otp</code>. No naming migration is part of this candidate.
-        Guest resource access is removed; use the whitelisted API.</p>
-      <p>A future rename to Ghost OTP requires a versioned data migration and downstream updates to
-        REST resources, SQL, custom scripts, reports and imports. A navigation label can change without
-        renaming the internal DocType. See the <a href="API_MIGRATION.md">separate rename plan</a>.</p>
+      <p>The internal DocType is now <strong>Ghost OTP</strong>, with table <code>tabGhost OTP</code>.
+        A guarded patch renames the old OTP schema before model sync, preserving records and native references.
+        The existing OTP naming series remains in use. Guest resource access stays denied.</p>
+      <p>Public <code>ghost.api.otp.*</code> methods keep their paths. The old Python controller import
+        remains as a deprecated alias; new imports use <code>ghost.ghost.doctype.ghost_otp.ghost_otp</code>.
+        Direct REST resources, SQL, scripts, query reports and Desk bookmarks using the old name require updates.
+        Read the <a href="API_MIGRATION.md">migration and rollback checklist</a> before updating.</p>
       <p>New verified identities use native Frappe User rename, which updates native Link fields.
         Existing target users retain roles; only Ghost-owned references migrate automatically.
         Each consuming app owns its cart, booking, customer or other business-data migration policy.</p>

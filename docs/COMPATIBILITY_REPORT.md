@@ -1,6 +1,6 @@
 # Ghost compatibility report
 
-Date: 2026-10-21. Candidate branch: `fix/auth-boundaries`.
+Date: 2026-10-21. Candidate branch: `fix/ghost-otp-rename`, based on `fix/auth-boundaries` at `949155e`.
 Comparison: public `main` at `672dfec9346dfd935c87fdc6ded554014a36d7f4`.
 
 ## Decision
@@ -11,9 +11,38 @@ They do not certify Marketplace distribution, external provider delivery or ever
 application. Require the remaining deployment gates before release.
 The new policy switches must be deliberately configured during an existing-site cutover.
 
-The internal DocType remains `OTP`, table `tabOTP`, and its Python/API paths are retained.
-No OTP-to-Ghost-OTP naming migration is included. The [public migration guide](API_MIGRATION.md)
-lists exact client impacts and a separate plan if that rename is approved later.
+The internal DocType is now `Ghost OTP`, table `tabGhost OTP`. A guarded pre-model-sync
+patch migrates the old schema. Public OTP API paths and a deprecated Python import alias
+remain; raw DocType/REST/SQL consumers require changes. See the [migration guide](API_MIGRATION.md).
+
+## Rename candidate verification
+
+The results in the historical evidence table below belong to the preceding authentication
+candidate. They do not automatically certify this rename. The rename adds ten isolated guard/
+import tests and a persisted fixture across two actual migrations, covering active OTP
+consumption/replay denial, exact row values/counts, naming-series state, Custom Fields,
+Property Setters, native Link/Dynamic Link values, file/share/comment/version references.
+| Rename candidate check | Result | Evidence |
+| --- | --- | --- |
+| Real existing-site native rename and repeat migration | Passed; exact OTP row values/counts and series retained; custom fields, Property Setter and native references retained; active code accepted once | `scripts/smoke_otp_rename.py`, `/tmp/ghost-otp-rename-repeat.log` |
+| Full local Ghost suite | 135 passed: 93 integration + 42 isolated | `/tmp/ghost-otp-rename-tests.log` |
+| Ecom shopping regression after rename | 14 passed | `/tmp/ghost-otp-rename-ecom.log` |
+| Native HTTP login and conversion | Passed; HttpOnly cookie, authenticated follow-up, no default bearer pair, replay denial | `scripts/smoke_email_otp.py` |
+| Ghost build | Passed | `/tmp/ghost-otp-rename-build.log` |
+| Installed v15 source isolated tests | 42 passed; does not modify its site/database | v15 command below, adding `ghost.tests.test_otp_rename` |
+| Ruff and every configured pre-commit hook | Passed, including new files | Repository hooks, Ruff 0.8.1 |
+| v15/v16 fresh install and previous-public-code upgrade | Required for this revision; inspect the current branch run for results | [Rename branch checks](https://github.com/muneeb141/ghost/actions?query=branch%3Afix%2Fghost-otp-rename) |
+
+The initial local rehearsal caught a patch-registry path error and the public Frappe
+wrapper's narrower rename signature before schema mutation. They were corrected to use
+the registered patch module and native `frappe.model.rename_doc.rename_doc`; the successful
+migration and repeated run then passed the persisted-data assertions. No framework source
+was edited. The local fixture records/metadata were removed after verification.
+
+A database/files backup was created before the local rehearsal on `ecom.localhost`:
+`sites/ecom.localhost/private/backups/20261021_023057-ecom_localhost-*`. These are private
+local artifacts and are not committed. A backup was created; full restore rehearsal remains
+a consumer deployment gate.
 
 ## Environment
 
@@ -28,7 +57,7 @@ lists exact client impacts and a separate plan if that rename is approved later.
 - CI observed Frappe 15.123.1 on Python 3.12 and Frappe 16.52.0 on Python 3.14.
   These are specific tested releases; the matrix follows their version branches.
 
-## Evidence
+## Historical authentication evidence (before the rename)
 
 | Check | Result | Evidence |
 | --- | --- | --- |
@@ -154,7 +183,8 @@ env PYTHONPATH=/home/muneeb_mohd/frappe/ecom/apps/ghost:/home/muneeb_mohd/frappe
 4. Announce the breaking contracts, explicit OTP/signup enablement and affected-credential
    revocation policy. Keep native password login available during a planned cutover.
 5. Choose a major release version and publish release notes after these gates pass.
-   Do not combine a future internal OTP rename with this security release.
+   The approved rename is included in this major-update candidate and must pass its own
+   fresh-install, previous-public-code upgrade and repeat-migration checks before release.
 
 No main merge, tag, Marketplace publication or production deployment is performed by
 these checks. The feature branch can be reviewed before the release gates are satisfied.

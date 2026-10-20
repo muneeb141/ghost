@@ -39,8 +39,15 @@ release. Existing installations must follow [API_MIGRATION.md](docs/API_MIGRATIO
 
 ### Compatibility and fixes
 
-- The internal DocType remains `OTP` (`tabOTP`) and its Python/public OTP API paths remain.
-  Renaming it to Ghost OTP requires a separate versioned migration and downstream changes.
+- Rename the internal `OTP` DocType/table to `Ghost OTP`/`tabGhost OTP` using a guarded,
+  versioned pre-model-sync native migration. Retain record names, values, naming series,
+  custom fields, Property Setters and native references; stop on ownership/table conflicts.
+- Keep public `ghost.api.otp.*` endpoints and a deprecated old-controller Python import alias.
+  Direct DocType, REST resource, SQL, query report, script and Desk route consumers must
+  update their references before cutover; there is no old REST/SQL alias.
+- Add a real, persisted rename fixture spanning two migrate invocations in both CI versions:
+  active-code verification/replay denial, row snapshots/counts, series, Custom Fields,
+  Property Setter, Link/Dynamic Link, attachment, share, comment and audit references.
 - Preserve legitimate eight-character anonymous identities, mixed-case legacy source payloads,
   native User links, transaction rollback, and single-use OTP/refresh consumption.
 - Fix duplicate/orphan login tokens, mixed-recipient proofs and the selected magic-link sender.

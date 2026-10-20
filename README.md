@@ -15,7 +15,8 @@ Ghost has no ERPNext or ecommerce dependency. Supported framework range: v15 and
 >   **Public Signup**. Both new switches start disabled on existing sites too.
 > - Verification bypass, fingerprint login and unverified automatic merging are removed.
 >   Plan reauthentication/revocation of credentials affected by the old issuance paths.
-> - The internal **OTP** DocType is retained. Read the
+> - The internal DocType changes from **OTP** to **Ghost OTP** through a data-preserving
+>   migration. Update direct DocType/REST/SQL integrations before cutover. Read the
 >   [upgrade checklist and full compatibility matrix](docs/API_MIGRATION.md) and
 >   [test evidence and remaining release gates](docs/COMPATIBILITY_REPORT.md) before deployment.
 >
@@ -88,9 +89,17 @@ other applications must implement their own verified migration policy.
 
 ## Existing sites and the OTP name
 
-The internal DocType remains **`OTP`** (`tabOTP`); its Python and public API paths remain.
-An internal rename to **Ghost OTP** requires a separate, tested migration and downstream
-changes for raw DocType, REST-resource and SQL consumers. It is not part of this candidate.
+This branch renames the internal DocType from **`OTP`** (`tabOTP`) to **`Ghost OTP`**
+(`tabGhost OTP`). A versioned patch runs before model sync and uses Frappe's native rename
+so existing record names, values and native references are preserved. The `OTP-...` document
+naming series remains unchanged. Conflicting schemas/tables stop migration; they are not merged.
+
+Public **`ghost.api.otp.*`** endpoints stay unchanged. The old Python controller import remains
+as a deprecated compatibility alias; new imports use `ghost.ghost.doctype.ghost_otp.ghost_otp`.
+Direct `frappe.get_doc("OTP", ...)`, `/api/resource/OTP`, `tabOTP` SQL, hard-coded scripts,
+query reports and old Desk bookmarks require updates. There is no transparent REST/SQL alias.
+Back up database/files, stop traffic and jobs during cutover, and test on a staging clone first.
+Restore the matching database/files/code backup to roll back; an old-code checkout alone is unsafe.
 
 Verification bypasses, caller-selected identities, fingerprint login and unverified
 multi-device merging are intentionally removed. Existing integrations using them need

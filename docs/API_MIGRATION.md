@@ -47,40 +47,61 @@ installation that exposed the old unverified issuance paths, plan revocation of 
 OAuth credentials and review sessions/roles. This candidate does not silently revoke all
 users on migration. Record the cutover and any required reauthentication in the release notes.
 
-## OTP versus Ghost OTP
+## OTP to Ghost OTP: internal schema migration
 
-**This candidate keeps the internal DocType named `OTP` and table `tabOTP`.**
-The Python path `ghost.ghost.doctype.otp.otp` and whitelisted `ghost.api.otp.*` paths are
-retained. No existing OTP records are moved or deleted by a naming change.
+The `fix/ghost-otp-rename` candidate builds on `fix/auth-boundaries` and renames Ghost's
+internal DocType **`OTP`** (`tabOTP`) to **`Ghost OTP`** (`tabGhost OTP`). This is part of
+the planned breaking major update; it is not a published Marketplace release.
 
-Renaming a JSON file/controller alone would be unsafe. A future internal rename affects:
+### Automatic migration
 
-- `/api/resource/OTP`, `frappe.get_doc("OTP", ...)`, SQL using `tabOTP`, reports and jobs;
-- Link/Dynamic Link fields, Custom Fields, Property Setters, permissions, fixtures,
-  scripts and other apps referencing the old DocType;
-- Python imports of the controller, Desk routes and saved bookmarks;
-- in-flight challenges, naming series, shares, attachments and audit references.
+`ghost.patches.v2_0.rename_otp_to_ghost_otp` runs **before model sync**. It checks ownership
+and table state, then uses Frappe's native DocType rename. It preserves existing OTP record
+names and values, including expiry/status, and leaves the existing `OTP-...` naming series
+and counter in use. The new controller is `ghost.ghost.doctype.ghost_otp.ghost_otp.GhostOTP`.
 
-The HTTP methods under `ghost.api.otp` can retain their public names even if the backing
-DocType changes, but Frappe does not give old resource URLs and arbitrary SQL a transparent
-compatibility alias. A Python import shim alone cannot preserve those contracts.
+Native Link metadata and DocType references are updated by Frappe, including Custom Fields,
+Property Setters, attachment references, shares, comments and version references. Serialized
+code/query text and external applications are not rewritten. Consumer apps with versioned
+metadata must update their own definitions too, or their later sync can restore old references.
 
-For this release, a navigation label **Ghost OTP** can distinguish the feature while
-keeping its internal name. If an internal rename is approved later, ship it separately:
+The patch is a no-op on a fresh site or after a successful rename. It refuses to merge two
+existing OTP schemas or overwrite a foreign/custom DocType or an orphan table. Before-install
+and before-migrate preflights prevent model sync from bypassing these checks; do not use
+`--skip-failing` to work around a conflict. A foreign `OTP` may coexist after Ghost has its
+own correctly owned `Ghost OTP` schema. Resolve unexpected states on a backup clone.
 
-1. Inventory downstream references and detect whether another app owns a conflicting OTP
-   DocType. Do not guess ownership or overwrite another app's table.
-2. Prepare a database/files backup and test restoration on a clone of a real installation.
-3. Implement an idempotent, versioned migration with Frappe's native DocType rename support
-   at the correct schema-sync stage; verify document names, rows and native references.
-4. Keep `ghost.api.otp` stable and retain the old Python import with a deprecation notice.
-   Publish a migration period for raw DocType/REST/SQL consumers; these require edits.
-5. Test fresh install, upgrade, repeated migration, active-code verification, custom fields,
-   reports, attachments and downstream apps on supported Frappe branches.
-6. Announce the breaking internal name change in a major release. Roll back using the
-   tested database/files/code backup; checking out the old Python code is insufficient.
+### Integration changes
 
-Do not combine that optional naming migration with the current security cutover.
+| Consumer | Required action |
+| --- | --- |
+| `ghost.api.otp.send_otp`, `ghost.api.otp.validate_otp`, authentication APIs | Paths remain unchanged; apply the authentication contract changes above |
+| Old `ghost.ghost.doctype.otp.otp` Python imports, including `OTP`, `generate`, `verify` | Deprecated module alias retained; move to `ghost.ghost.doctype.ghost_otp.ghost_otp` and class `GhostOTP` |
+| `frappe.get_doc("OTP", ...)`, queries, explicit DocType strings | Change to `Ghost OTP` |
+| `/api/resource/OTP` | Change to `/api/resource/Ghost%20OTP`; existing permission checks still apply |
+| SQL using `tabOTP` | Change to quoted `` `tabGhost OTP` ``; update query reports and scripts |
+| Desk routes/bookmarks | Use the Ghost OTP route (`ghost-otp`) appropriate to the Frappe version |
+| App-owned fixtures, Customizations exports, JS/Python/Server Scripts, query text | Review and update hard-coded names before deployment |
+
+The Python alias is not a second DocType. **There is no transparent alias for old resource
+URLs, raw SQL or arbitrary `frappe.get_doc("OTP", ...)` calls.** Guests still cannot read OTP
+resources. Use the public delivery/authentication methods rather than exposing code records.
+
+### Upgrade and rollback verification
+
+1. Inventory integrations/customizations; update hard-coded references and pause traffic,
+   workers and scheduled tasks using OTP during the maintenance window.
+2. Back up database/files and pin the previous code revision; rehearse on a clone.
+3. Run `bench --site <site> migrate` with the candidate; verify existing record counts/names,
+   native references, customization values, OTP delivery/consumption and configured policies.
+4. Run migration again to verify idempotence. Both v15/v16 CI jobs include a previous-public-
+   code install with real legacy/customized fixtures; require green checks for this revision.
+5. Roll back using the matching tested database/files/code backup. Native table rename is DDL;
+   changing code alone cannot revert the schema. Never automatically rename another app's data.
+6. Announce the new internal name, required consumer edits and other breaking contracts in
+   the approved major release notes and Marketplace update description before distribution.
+
+See [the compatibility report](COMPATIBILITY_REPORT.md) for current evidence and limits.
 
 ## Deployment sequence
 
