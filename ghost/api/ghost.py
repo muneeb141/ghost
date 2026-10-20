@@ -21,7 +21,7 @@ def create_ghost_session(email=None, fingerprint=None):
 	ghost_role = settings.ghost_role or "Ghost"
 	if frappe.db.get_value("Role", ghost_role, "desk_access"):
 		frappe.throw(_("The anonymous Ghost role must not grant Desk access"), frappe.PermissionError)
-	domain = settings.ghost_email_domain or "guest.local"
+	domain = (settings.ghost_email_domain or "guest.local").lower()
 	email = f"ghost_{uuid.uuid4().hex}@{domain}"
 	user = frappe.get_doc(
 		{

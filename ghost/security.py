@@ -10,7 +10,7 @@ from frappe import _
 def require_owned_ghost(ghost_email):
 	settings = frappe.get_single("Ghost Settings")
 	actor = frappe.session.user
-	domain = settings.ghost_email_domain or "guest.local"
+	domain = (settings.ghost_email_domain or "guest.local").lower()
 	pattern = rf"ghost_(?:[0-9a-f]{{8}}|[0-9a-f]{{32}})@{re.escape(domain)}"
 	if not settings.enable_ghost_feature or not actor or actor == "Guest" or actor != ghost_email:
 		frappe.throw(_("An authenticated Ghost session owned by you is required"), frappe.PermissionError)

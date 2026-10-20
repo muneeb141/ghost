@@ -33,8 +33,8 @@ lists exact client impacts and a separate plan if that rename is approved later.
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Current-site migration | Passed | `/tmp/ghost-compat-migrate.log` |
-| Complete Ghost suite on v16 | 124 passed: 92 integration + 32 isolated | `/tmp/ghost-compat-full-suite.log` |
-| Legacy upgrade assertions | Included in the 92: eight-character identity/native User Link preservation, existing OTP retention/idempotence, security-setting migration | `ghost.tests.test_upgrade_compatibility` |
+| Complete Ghost suite on v16 | 125 passed: 93 integration + 32 isolated | `/tmp/ghost-compat-full-suite.log` |
+| Legacy upgrade assertions | Included in the 93: eight-character identity/native User Link preservation, existing OTP retention/idempotence, security-setting migration, mixed-case configured domains | `ghost.tests.test_upgrade_compatibility` |
 | Native HTTP login | Passed: direct login, HttpOnly sid, authenticated follow-up, no default bearer pair, cross-browser replay denial, owned Ghost conversion to verified cookie session | `/tmp/ghost-compat-http.log`, `scripts/smoke_email_otp.py` |
 | Installed Frappe v15 isolated tests | 32 passed, real v15 source | Command below |
 | Ecom shopping regression | 14 passed | `/tmp/ghost-compat-ecom.log` |
@@ -47,9 +47,10 @@ lists exact client impacts and a separate plan if that rename is approved later.
 
 Local logs are evidence paths, not committed artifacts; CI uploads its test/build logs
 for reviewer access. The complete v15/v16 matrix evidence comes from the linked CI jobs,
-separately from the local logs. Those jobs tested runtime commit `b286b9d`; subsequent
-report-only updates do not change application behavior. Always check the current branch
-checks before merging.
+separately from the local logs. Those jobs tested runtime commit `b286b9d`; the additional
+mixed-case-domain regression was added afterwards. The final candidate runs the same matrix
+with 125 tests per site; check the [current branch checks](https://github.com/muneeb141/ghost/actions?query=branch%3Afix%2Fauth-boundaries)
+before merging. The linked historical jobs remain pinned evidence for the preceding 124-test revision.
 
 ## Regressions actually exposed and repaired
 
@@ -78,6 +79,11 @@ checks before merging.
 7. Scheduled task helpers committed inside their caller's transaction. They now leave
    commit ownership to Frappe's request/job wrapper, making rollback-owned tests possible.
    This does not claim that the unchanged bulk cleanup handles every consumer app's data.
+
+8. An existing site's mixed-case Ghost domain could fail the new anonymous ownership check
+   because Frappe normalizes User emails to lowercase. A real existing-identity test failed
+   with PermissionError before the fix. Anonymous creation and ownership matching now
+   normalize the configured domain to lowercase; the exact owner, role and account checks remain.
 
 ## CI failures resolved before passing
 

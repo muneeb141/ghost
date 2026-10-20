@@ -51,3 +51,9 @@ class TestUpgradeCompatibility(GhostIntegrationCase):
 		result = self.convert(source)
 		self.assertEqual(result["user"], self.email)
 		self.assertEqual(frappe.db.get_value("Ghost Lead", lead.name, "ghost_email"), self.email)
+
+	def test_custom_domain_case_does_not_break_existing_anonymous_owners(self):
+		source = self.new_ghost()["user"]
+		self.configure(ghost_email_domain=self.settings.ghost_email_domain.upper())
+		result = self.convert(source)
+		self.assertEqual(result["user"], self.email)
