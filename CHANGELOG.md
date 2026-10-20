@@ -5,6 +5,49 @@ All notable changes to the Ghost app are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Breaking authentication upgrade candidate
+
+This section announces the changes planned after 1.0.0. It is not a published release.
+The package version remains 1.0.0 during review; assign the approved major version before
+release. Existing installations must follow [API_MIGRATION.md](docs/API_MIGRATION.md).
+
+### Required before updating an existing installation
+
+- Inventory consumers, back up database/files, rehearse migration and restoration on a clone,
+  and update clients before the scheduled cutover.
+- Configure outgoing email/SMS and explicitly set `enable_otp_login` and `allow_public_signup`.
+  Their upgrade defaults are disabled. Staff OTP login is a separate opt-in; built-in users
+  remain excluded. Native Frappe password login and existing User records are retained.
+- Announce the required client/configuration changes in versioned GitHub release notes and
+  the Marketplace release/update description before users receive the upgrade. Publishing
+  those notices and promoting code to main require the maintainer's explicit authorization.
+- Review credentials issued through the affected legacy paths and plan revocation and
+  reauthentication. Migration does not silently revoke every user's credentials.
+
+### Breaking changes
+
+- Anonymous identities are server-generated; caller-selected emails and fingerprint-based
+  authentication are rejected. Public conversion requires the owned source and target proof.
+- OTPs identify exactly one recipient and one purpose. Login consumes a `Login` code directly;
+  separate validation consumes it and cannot precede login with the same code.
+- Guest OTP resource access, public verification bypasses, developer magic-link responses,
+  browser fixed-code sandbox and unverified multi-device merging are removed.
+- Authentication writes use POST. Direct login creates a native HttpOnly session by default;
+  headless consumers explicitly request credentials with the configured OAuth client.
+- Magic-link and Google conversion require the originating anonymous credentials. Existing
+  target roles are retained; consumer business-data migration remains the consumer app's job.
+
+### Compatibility and fixes
+
+- The internal DocType remains `OTP` (`tabOTP`) and its Python/public OTP API paths remain.
+  Renaming it to Ghost OTP requires a separate versioned migration and downstream changes.
+- Preserve legitimate eight-character anonymous identities, mixed-case legacy source payloads,
+  native User links, transaction rollback, and single-use OTP/refresh consumption.
+- Fix duplicate/orphan login tokens, mixed-recipient proofs and the selected magic-link sender.
+- Add Frappe-only v15/v16 clean-install and previous-public-code upgrade CI, real database
+  regressions, native HTTP cookie checks, loopback SMTP and signed webhook tests.
+- See [the compatibility report](docs/COMPATIBILITY_REPORT.md) for exact evidence and limits.
+
 ## [1.0.0] - 2026-08-03
 
 ### 🎉 Initial Release — Complete Feature Set

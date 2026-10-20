@@ -27,7 +27,10 @@
     <div class="info-box warning">
       <strong>Security repair candidate — breaking API behavior.</strong>
       <p>This documentation describes the candidate, not a published Marketplace release.
-      Existing integrations must follow the <a href="API_MIGRATION.md">migration matrix</a>.
+      <strong>Existing installations must read the upgrade guide before updating.</strong>
+      Back up and rehearse on staging, update client contracts, configure delivery and explicitly
+      enable the new OTP Login/Public Signup policy switches; their defaults are disabled.
+      The internal OTP DocType remains unchanged. Follow the <a href="API_MIGRATION.md">migration matrix and cutover checklist</a>.
       Read the <a href="COMPATIBILITY_REPORT.md">actual verification results and remaining gates</a>.</p>
     </div>
     <section id="getting-started">

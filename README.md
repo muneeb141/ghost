@@ -3,9 +3,23 @@
 Anonymous identities and verified passwordless authentication for Frappe applications.
 Ghost has no ERPNext or ecommerce dependency. Supported framework range: v15 and v16.
 
-> This branch is a security repair candidate with breaking authentication changes.
-> It is not a published Marketplace release. Read the [public upgrade guide](docs/API_MIGRATION.md)
-> and [compatibility evidence](docs/COMPATIBILITY_REPORT.md) before upgrading an existing site.
+> [!IMPORTANT]
+> **Existing installations: read before updating.** This candidate introduces breaking
+> authentication changes and requires a planned major-version upgrade. Its package version
+> is still 1.0.0 during review; it has not been released to Marketplace.
+>
+> - Back up the database/files and rehearse the upgrade on a staging clone.
+> - Update clients for recipient-bound OTPs, `Login` versus `Conversion` purpose, POST
+>   requests, and cookie-session versus explicit bearer-token login.
+> - Configure email delivery and explicitly enable **OTP Login** and, if required,
+>   **Public Signup**. Both new switches start disabled on existing sites too.
+> - Verification bypass, fingerprint login and unverified automatic merging are removed.
+>   Plan reauthentication/revocation of credentials affected by the old issuance paths.
+> - The internal **OTP** DocType is retained. Read the
+>   [upgrade checklist and full compatibility matrix](docs/API_MIGRATION.md) and
+>   [test evidence and remaining release gates](docs/COMPATIBILITY_REPORT.md) before deployment.
+>
+> The release must carry versioned GitHub and Marketplace upgrade notes before distribution.
 
 ## Install and configure
 
