@@ -6,9 +6,9 @@ Comparison: public `main` at `672dfec9346dfd935c87fdc6ded554014a36d7f4`.
 ## Decision
 
 **This is a breaking authentication repair candidate, not a drop-in update to public 1.0.0.**
-The current-site results below are positive evidence, but do not establish every supported
-version, a clean installation, Marketplace certification, provider delivery or every
-consumer application's compatibility. Require the remaining gates before release.
+The current-site and CI results below verify the tested v15/v16 installations and upgrades.
+They do not certify Marketplace distribution, external provider delivery or every consumer
+application. Require the remaining deployment gates before release.
 The new policy switches must be deliberately configured during an existing-site cutover.
 
 The internal DocType remains `OTP`, table `tabOTP`, and its Python/API paths are retained.
@@ -22,9 +22,11 @@ lists exact client impacts and a separate plan if that rename is approved later.
 - Additional isolated checks use installed Frappe 15.121.1 source; its site/database were
   not changed. This is not a full v15 database run or a Python 3.12 runtime result.
 - Ghost is tested as a general authentication app. Its fixtures do not require ERPNext.
-  The current local site has ERPNext; Frappe-only fresh installation is a separate CI gate.
+  The current local site has ERPNext; both CI jobs verified Frappe-only installations.
 - No local DB-admin access was available. The user selected the existing site for local
-  tests. Separate clean-install and previous-release upgrade databases belong in CI.
+  tests. Separate clean-install and previous-release upgrade databases ran successfully in CI.
+- CI observed Frappe 15.123.1 on Python 3.12 and Frappe 16.52.0 on Python 3.14.
+  These are specific tested releases; the matrix follows their version branches.
 
 ## Evidence
 
@@ -40,11 +42,14 @@ lists exact client impacts and a separate plan if that rename is approved later.
 | Client examples | 13 Bruno endpoint paths/payload signatures resolve to whitelisted methods; two embedded demo scripts parse with Node. This is not Bruno CLI execution or browser interaction | One-off source-contract validation |
 | Ruff | Full Python lint and formatting passed | Ruff 0.8.1, repository configuration |
 | Existing pre-commit hooks | Passed: every configured hook | All tracked and new files included |
-| Frappe-only v15/v16 clean install and previous-public-commit upgrade | Workflow added; not yet executed or claimed passed | `.github/workflows/compatibility.yml` |
+| Frappe 15.123.1 clean install and public-commit upgrade | Passed: 124 tests on each site, native HTTP smoke, legacy-data assertions and build | [v15 CI job](https://github.com/muneeb141/ghost/actions/runs/39490159009/job/118860885425) |
+| Frappe 16.52.0 clean install and public-commit upgrade | Passed: 92 integration + 32 isolated tests on each site, native HTTP smoke, legacy-data assertions and build | [v16 CI job](https://github.com/muneeb141/ghost/actions/runs/39490159009/job/118860885009) |
 
 Local logs are evidence paths, not committed artifacts; CI uploads its test/build logs
-for reviewer access when it runs. No complete v15/v16 matrix result is claimed from these
-local logs.
+for reviewer access. The complete v15/v16 matrix evidence comes from the linked CI jobs,
+separately from the local logs. Those jobs tested runtime commit `b286b9d`; subsequent
+report-only updates do not change application behavior. Always check the current branch
+checks before merging.
 
 ## Regressions actually exposed and repaired
 
@@ -73,6 +78,18 @@ local logs.
 7. Scheduled task helpers committed inside their caller's transaction. They now leave
    commit ownership to Frappe's request/job wrapper, making rollback-owned tests possible.
    This does not claim that the unchanged bulk cleanup handles every consumer app's data.
+
+## CI failures resolved before passing
+
+The first attempt stopped before tests because Bench requires the `redis-server` binary
+when rendering configuration, even when Redis runs in service containers. The runner now
+installs it. The next attempt reached tests and exposed the skipped native Frappe asset
+build: real email rendering requires `email.bundle.css` and the asset manifest. CI now
+builds Frappe assets first. SMTP fixtures also accommodate v15 immediate and v16 deferred
+queue timing while still asserting one actual wire message and successful use of its code.
+The hook exclusion pattern was corrected so `.github` YAML is validated as well.
+Neither failed attempt is represented as compatibility success; the linked corrected run
+completed both matrix jobs successfully.
 
 ## What the tests exercise
 
@@ -116,11 +133,10 @@ env PYTHONPATH=/home/muneeb_mohd/frappe/ecom/apps/ghost:/home/muneeb_mohd/frappe
 
 ## Remaining merge/release gates
 
-1. Run both CI matrix jobs: Frappe v15/Python 3.12 and v16/Python 3.14, each on a
-   Frappe-only clean install and an upgrade from public commit `672dfec`. The upgrade
-   fixture includes legacy settings, an eight-character identity, an active OTP and a
-   linked lead. It asserts no data loss, old-code usability for a legitimate single
-   recipient, mandatory verification and preserved native User links.
+1. Keep both compatibility jobs required and green on the revision being merged. Both
+   passed for the tested runtime. Their real upgrade fixture includes legacy settings,
+   an eight-character identity, an active OTP and a linked lead. It verifies retention,
+   legitimate single-recipient code usability, mandatory verification and native links.
 2. Rehearse an actual consumer clone's cutover and restore, including custom fields,
    domain/role policy, app-owned cart/booking/customer links, token refresh and existing
    target account ownership. Native rename can scan more linked tables than the old

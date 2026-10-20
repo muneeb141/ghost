@@ -93,7 +93,8 @@ Do not combine that optional naming migration with the current security cutover.
 4. Require both Frappe v15/v16 CI jobs (fresh installation and previous-public-commit
    upgrade) to pass. Read the compatibility report for any additional unverified gate.
 5. Deploy in a maintenance window, run `bench --site <site> migrate`, configure delivery,
-   explicitly set OTP/signup policy, and revoke affected credentials as planned.
+   explicitly set OTP/signup policy, restart web/workers through the normal deployment
+   procedure, and revoke affected credentials as planned.
 6. Verify real mailbox delivery, login, logout, refresh, CSRF and app-specific ownership
    in staging, then smoke-test the live cutover. Google needs actual provider credentials.
 7. Publish a versioned changelog and migration notice before Marketplace distribution.

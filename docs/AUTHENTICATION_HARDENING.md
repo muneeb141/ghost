@@ -129,4 +129,6 @@ remaining release gates are recorded there. The historical checklist was:
   on any installation that exposed the old paths; a code fix cannot undo earlier issuance.
 - Pin the reviewed release in consuming apps and document the breaking API changes.
 
-No production deployment or public push has been performed by this repair task.
+The initial repair was local. The compatibility follow-up pushed only the review branch
+and ran the CI matrix linked in the current report. No main merge, release publication
+or production deployment has been performed.
