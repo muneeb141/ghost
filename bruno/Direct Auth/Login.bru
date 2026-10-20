@@ -12,16 +12,13 @@ post {
 
 body:json {
   {
-    "email": "user@example.com",
-    "otp": "123456",
+    "email": "{{target_email}}",
+    "otp": "{{otp_code}}",
     "first_name": "John",
     "last_name": "Doe"
   }
 }
 
-vars:pre-request {
-  baseUrl: http://localhost:8000
-}
 
 docs {
   ### Direct Login / Signup

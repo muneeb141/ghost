@@ -10,9 +10,6 @@ post {
   auth: none
 }
 
-vars:pre-request {
-  baseUrl: http://localhost:8000
-}
 
 script:post-response {
   if (res.status === 200) {

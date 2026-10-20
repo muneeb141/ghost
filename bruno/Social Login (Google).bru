@@ -5,15 +5,15 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/method/ghost.api.ghost.convert_via_social_login
+  url: {{baseUrl}}/api/method/ghost.api.social.convert_with_google
   body: json
   auth: none
 }
 
 body:json {
   {
-    "provider": "google",
-    "token": "YOUR_GOOGLE_ID_TOKEN"
+    "ghost_email": "{{ghost_email}}",
+    "id_token": "{{google_id_token}}"
   }
 }
 

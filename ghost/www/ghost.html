@@ -609,7 +609,7 @@
                 <div class="step-title">Convert to Real User</div>
             </div>
             <div class="step-desc">
-                The ghost user decides to register. Choose either Google Social Login for instant signup, or manual conversion with name details.
+                The ghost user decides to register. Choose either Google Social Login for instant signup, or verify the target email using a delivered OTP or magic link.
             </div>
 
             <div class="google-btn-wrapper">
@@ -639,7 +639,7 @@
             </div>
 
             <div class="convert-section">
-                <div class="section-label">Or convert manually (frictionless)</div>
+                <div class="section-label">Or verify with email</div>
                 <div class="form-row">
                     <input type="email" class="input-field" id="input-real-email" placeholder="Real email" />
                 </div>
@@ -647,12 +647,20 @@
                     <input type="text" class="input-field" id="input-first" placeholder="First name" />
                     <input type="text" class="input-field" id="input-last" placeholder="Last name" />
                 </div>
-                <button class="btn btn-primary" id="btn-convert" onclick="convertFrictionless()" disabled>
+                <div class="form-row">
+                    <input type="text" class="input-field" id="input-otp" placeholder="Delivered Conversion OTP" autocomplete="one-time-code" />
+                </div>
+                <button class="btn btn-secondary" id="btn-send-otp" onclick="sendConversionOTP()" disabled>Send OTP</button>
+                <button class="btn btn-primary" id="btn-convert" onclick="convertWithOTP()" disabled>
                     Convert User
                 </button>
                 <button class="btn btn-secondary" id="btn-magic-link" onclick="sendMagicLink()" disabled style="margin-left: 8px;">
                     Send Magic Link
                 </button>
+                <div class="form-row" style="margin-top:16px;">
+                    <input type="text" class="input-field" id="input-magic-link" placeholder="Paste the link from your email into this original tab" />
+                    <button class="btn btn-secondary" onclick="consumeDeliveredLink()">Verify emailed link</button>
+                </div>
             </div>
 
             <div class="response-panel" id="resp-3-manual">
@@ -666,8 +674,8 @@
             <div class="info-banner warning" style="margin-top:16px;">
                 <span class="icon">⚠</span>
                 <span>
-                    <strong>Google OAuth:</strong> To use "Continue with Google", ensure your live site URL 
-                    (e.g. <code>https://my-ghost-app.com</code>) is added to the 
+                    <strong>Google OAuth:</strong> To use "Continue with Google", ensure your live site URL
+                    (e.g. <code>https://my-ghost-app.com</code>) is added to the
                     <strong>Authorized JavaScript origins</strong> in your Google Cloud Console credentials page.
                 </span>
             </div>
@@ -686,7 +694,7 @@
             <div class="step-desc">
                 When a Ghost User converts, the backend instantly dispatches a secure webhook to your configured integrations (like Zapier, Make.com, or HubSpot). This happens strictly Server-to-Server.
             </div>
-            
+
             <div class="info-banner info" style="display: block;">
                 <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px;">
                     <span class="icon">💡</span>
@@ -726,7 +734,7 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
         </div>
 
         <div class="footer">
-            Built with <a href="https://frappeframework.com" target="_blank">Frappe</a> · 
+            Built with <a href="https://frappeframework.com" target="_blank">Frappe</a> ·
             <a href="https://github.com/" target="_blank">View on GitHub</a>
         </div>
     </div>
@@ -752,13 +760,7 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
                 return;
             }
 
-            // Pretty-print JSON with syntax highlighting
-            const raw = JSON.stringify(data, null, 2);
-            body.innerHTML = raw
-                .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
-                .replace(/: "([^"]*)"/g, ': <span class="string">"$1"</span>')
-                .replace(/: (true|false)/g, ': <span class="boolean">$1</span>')
-                .replace(/: (\d+)/g, ': <span class="boolean">$1</span>');
+            body.textContent = JSON.stringify(data, null, 2);
         }
 
         function markComplete(stepId) {
@@ -783,23 +785,6 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
         }
 
         // ─── Step 1: Create Ghost Session ────────────────────
-        // Generate a simulated device fingerprint for the demo
-        function getDeviceFingerprint() {
-            let fp = localStorage.getItem('ghost_demo_fingerprint');
-            if (!fp) {
-                // A simple hash of user agent + screen resolution as a mock fingerprint
-                const raw = navigator.userAgent + screen.width + 'x' + screen.height;
-                let hash = 0;
-                for (let i = 0; i < raw.length; i++) {
-                    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
-                    hash |= 0;
-                }
-                fp = 'demo_fp_' + Math.abs(hash).toString(16);
-                localStorage.setItem('ghost_demo_fingerprint', fp);
-            }
-            return fp;
-        }
-
         async function createSession() {
             const btn = document.getElementById('btn-session');
             btn.disabled = true;
@@ -808,8 +793,7 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
             showResponse('resp-1', 'status-1', 'body-1', 'loading', null);
 
             try {
-                const fp = getDeviceFingerprint();
-                const json = await apiCall('/api/method/ghost.api.ghost.create_ghost_session', { fingerprint: fp });
+                const json = await apiCall('/api/method/ghost.api.ghost.create_ghost_session', {});
                 const msg = json.message || json;
 
                 if (msg.access_token) {
@@ -826,6 +810,7 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
 
                     // Enable next step
                     document.getElementById('btn-capture').disabled = false;
+                    document.getElementById('btn-send-otp').disabled = false;
                     document.getElementById('btn-convert').disabled = false;
                     document.getElementById('btn-magic-link').disabled = false;
 
@@ -911,13 +896,38 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
             }
         }
 
-        // ─── Step 3b: Frictionless Convert ───────────────────
-        async function convertFrictionless() {
+        async function sendConversionOTP() {
+            const email = document.getElementById('input-real-email').value.trim();
+            if (!email || !ghostToken) return;
+            const result = await apiCall('/api/method/ghost.api.otp.send_otp',
+                { email, purpose: 'Conversion' }, ghostToken);
+            showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual',
+                result.message?.status === 'success' ? 'success' : 'error', result);
+        }
+
+        async function consumeDeliveredLink() {
+            if (!ghostToken) return;
+            try {
+                const value = document.getElementById('input-magic-link').value.trim();
+                const token = new URL(value, location.origin).searchParams.get('token');
+                if (!token) throw new Error('Paste the complete link delivered by email.');
+                const result = await apiCall('/api/method/ghost.api.magic_link.consume_magic_link', { token }, ghostToken);
+                const success = !!result.message?.user;
+                showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', success ? 'success' : 'error', result);
+                if (success) markComplete('step-3');
+            } catch (error) {
+                showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', { error: error.message });
+            }
+        }
+
+        // ─── Step 3b: Verified OTP conversion ───────────────────
+        async function convertWithOTP() {
             const realEmail = document.getElementById('input-real-email').value;
             const firstName = document.getElementById('input-first').value;
             const lastName = document.getElementById('input-last').value;
 
-            if (!realEmail) return;
+            const otpCode = document.getElementById('input-otp').value.trim();
+            if (!realEmail || !otpCode) return;
 
             const btn = document.getElementById('btn-convert');
             btn.disabled = true;
@@ -932,7 +942,8 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
                         ghost_email: ghostEmail,
                         real_email: realEmail,
                         first_name: firstName || undefined,
-                        last_name: lastName || undefined
+                        last_name: lastName || undefined,
+                        otp_code: otpCode
                     },
                     ghostToken
                 );
@@ -982,18 +993,8 @@ http.server.HTTPServer(('0.0.0.0', 9001), Handler).serve_forever()</pre>
                 if (msg.status === 'success') {
                     showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'success', msg);
                     btn.innerHTML = '✓ Link Sent';
-                    
-                    if (msg.dev_magic_link) {
-                        const bodyEl = document.getElementById('body-3-manual');
-                        const linkBtn = document.createElement('a');
-                        linkBtn.href = msg.dev_magic_link;
-                        linkBtn.target = '_blank';
-                        linkBtn.className = 'btn btn-primary';
-                        linkBtn.style.display = 'inline-block';
-                        linkBtn.style.marginTop = '16px';
-                        linkBtn.textContent = '🔗 Click here to test Magic Link (Bypasses Email)';
-                        bodyEl.appendChild(linkBtn);
-                    }
+
+
                 } else {
                     showResponse('resp-3-manual', 'status-3-manual', 'body-3-manual', 'error', json);
                     btn.innerHTML = 'Send Magic Link';

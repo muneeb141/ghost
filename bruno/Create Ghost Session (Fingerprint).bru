@@ -16,9 +16,6 @@ body:json {
   }
 }
 
-vars:pre-request {
-  baseUrl: http://localhost:8000
-}
 
 script:post-response {
   if (res.status === 200) {
@@ -31,4 +28,9 @@ script:post-response {
     bru.setVar("expires_in", data.message.expires_in);
     bru.setVar("token_type", data.message.token_type);
   }
+}
+
+docs {
+  The fingerprint argument is retained for compatibility but cannot authenticate or reconnect a user.
+  Repeated calls create distinct anonymous identities. Save the issued credentials to resume a session.
 }

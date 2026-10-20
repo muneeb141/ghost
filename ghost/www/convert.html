@@ -178,10 +178,13 @@
             <div id="confirm-view">
                 <h3 class="magic-link-title">{{ _("Verify Your Email") }}</h3>
                 <p class="magic-link-subtitle">{{ _("Click the button below to securely verify your email and convert your account.") }}</p>
-                <button id="btn-confirm" class="magic-link-btn">{{ _("Verify & Convert") }}</button>
+                {% if frappe.session.user == 'Guest' %}
+                <p class="magic-link-subtitle">{{ _("Return to the application where you requested this link and finish verification there. This link must be used with your original anonymous session.") }}</p>
+                {% endif %}
+                <button id="btn-confirm" class="magic-link-btn" {% if frappe.session.user == 'Guest' %}disabled{% endif %}>{{ _("Verify & Convert") }}</button>
                 <p id="error-msg" style="color: var(--error); margin-top: 1rem; display: none; font-weight: 500;"></p>
             </div>
-            
+
             <div id="success-view" style="display: none;">
                 <h3 class="magic-link-title" style="background: var(--success); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{{ _("Account Activated!") }}</h3>
                 <p class="magic-link-subtitle" style="margin-bottom: 1.5rem;">{{ _("Your account has been successfully verified and converted.") }}</p>
@@ -194,7 +197,7 @@
                     const btn = this;
                     btn.disabled = true;
                     btn.textContent = 'Verifying...';
-                    
+
                     try {
                         const response = await fetch('/api/method/ghost.api.magic_link.consume_magic_link', {
                             method: 'POST',
@@ -204,9 +207,9 @@
                             },
                             body: JSON.stringify({ token: "{{ token }}" })
                         });
-                        
+
                         const data = await response.json();
-                        
+
                         if (data.message && data.message.redirect_url) {
                             if (data.message.access_token) {
                                 localStorage.setItem("access_token", data.message.access_token);
@@ -215,15 +218,15 @@
                             window.location.href = data.message.redirect_url;
                             return;
                         }
-                        
+
                         if (data.message && data.message.status !== 'error') {
                             document.getElementById('confirm-view').style.display = 'none';
                             document.getElementById('success-view').style.display = 'block';
-                            
+
                             if (data.message.user) {
                                 document.getElementById('welcome-msg').textContent = 'Welcome, ' + data.message.user + '!';
                             }
-                            
+
                             if (data.message.access_token) {
                                 localStorage.setItem("access_token", data.message.access_token);
                                 localStorage.setItem("refresh_token", data.message.refresh_token);

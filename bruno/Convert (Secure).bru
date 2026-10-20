@@ -17,16 +17,13 @@ headers {
 body:json {
   {
     "ghost_email": "{{ghost_email}}",
-    "real_email": "user@example.com",
+    "real_email": "{{target_email}}",
     "first_name": "John",
     "last_name": "Doe",
-    "otp_code": "123456"
+    "otp_code": "{{otp_code}}"
   }
 }
 
-vars:pre-request {
-  baseUrl: http://localhost:8000
-}
 
 script:post-response {
   if (res.status === 200) {

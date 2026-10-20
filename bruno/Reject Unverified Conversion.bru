@@ -1,0 +1,37 @@
+meta {
+  name: Reject Unverified Conversion
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/method/ghost.api.ghost.convert_to_real_user
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+body:json {
+  {
+    "ghost_email": "{{ghost_email}}",
+    "real_email": "{{target_email}}",
+    "first_name": "John",
+    "last_name": "Doe",
+    "bypass_otp": true
+  }
+}
+
+
+tests {
+  test("Caller cannot bypass verification", function () {
+    expect(res.getStatus()).to.equal(403);
+  });
+}
+
+docs {
+  Negative security regression. This request must fail even when legacy verification settings are disabled.
+  Use Convert (Secure) with a delivered Conversion OTP for a successful conversion.
+}

@@ -1,0 +1,137 @@
+# Ghost compatibility report
+
+Date: 2026-10-21. Candidate branch: `fix/auth-boundaries`.
+Comparison: public `main` at `672dfec9346dfd935c87fdc6ded554014a36d7f4`.
+
+## Decision
+
+**This is a breaking authentication repair candidate, not a drop-in update to public 1.0.0.**
+The current-site results below are positive evidence, but do not establish every supported
+version, a clean installation, Marketplace certification, provider delivery or every
+consumer application's compatibility. Require the remaining gates before release.
+The new policy switches must be deliberately configured during an existing-site cutover.
+
+The internal DocType remains `OTP`, table `tabOTP`, and its Python/API paths are retained.
+No OTP-to-Ghost-OTP naming migration is included. The [public migration guide](API_MIGRATION.md)
+lists exact client impacts and a separate plan if that rename is approved later.
+
+## Environment
+
+- Authorized disposable current site: `ecom.localhost` in the Ecom Bench.
+- Frappe 16.51.1, ERPNext 16.50.0, Python 3.14.7, Node 24.21.0, MariaDB 10.11.14.
+- Additional isolated checks use installed Frappe 15.121.1 source; its site/database were
+  not changed. This is not a full v15 database run or a Python 3.12 runtime result.
+- Ghost is tested as a general authentication app. Its fixtures do not require ERPNext.
+  The current local site has ERPNext; Frappe-only fresh installation is a separate CI gate.
+- No local DB-admin access was available. The user selected the existing site for local
+  tests. Separate clean-install and previous-release upgrade databases belong in CI.
+
+## Evidence
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Current-site migration | Passed | `/tmp/ghost-compat-migrate.log` |
+| Complete Ghost suite on v16 | 124 passed: 92 integration + 32 isolated | `/tmp/ghost-compat-full-suite.log` |
+| Legacy upgrade assertions | Included in the 92: eight-character identity/native User Link preservation, existing OTP retention/idempotence, security-setting migration | `ghost.tests.test_upgrade_compatibility` |
+| Native HTTP login | Passed: direct login, HttpOnly sid, authenticated follow-up, no default bearer pair, cross-browser replay denial, owned Ghost conversion to verified cookie session | `/tmp/ghost-compat-http.log`, `scripts/smoke_email_otp.py` |
+| Installed Frappe v15 isolated tests | 32 passed, real v15 source | Command below |
+| Ecom shopping regression | 14 passed | `/tmp/ghost-compat-ecom.log` |
+| Ghost asset build | Passed | `/tmp/ghost-compat-build.log` |
+| Client examples | 13 Bruno endpoint paths/payload signatures resolve to whitelisted methods; two embedded demo scripts parse with Node. This is not Bruno CLI execution or browser interaction | One-off source-contract validation |
+| Ruff | Full Python lint and formatting passed | Ruff 0.8.1, repository configuration |
+| Existing pre-commit hooks | Passed: every configured hook | All tracked and new files included |
+| Frappe-only v15/v16 clean install and previous-public-commit upgrade | Workflow added; not yet executed or claimed passed | `.github/workflows/compatibility.yml` |
+
+Local logs are evidence paths, not committed artifacts; CI uploads its test/build logs
+for reviewer access when it runs. No complete v15/v16 matrix result is claimed from these
+local logs.
+
+## Regressions actually exposed and repaired
+
+1. Ghost conversion through `auth.login` created an unused bearer credential for cookie
+   login, and two active pairs for an explicit headless client. The real database tests
+   failed on token counts before the fix. Conversion now leaves issuance to the caller
+   so cookie login creates zero active pairs and explicit token login creates one.
+2. A `Both` delivery challenge could contain a victim email and another person's phone;
+   verification of the email alone accepted the shared code. A real persisted-row test
+   demonstrated it. Generation and verification now require exactly one recipient;
+   existing mixed-recipient records are rejected. `Both` chooses the requested channel.
+3. Magic-link mail ignored the selected Ghost Email Account and required a site-default
+   sender. The loopback SMTP test exposed it. Ghost now passes the selected sender to
+   native `frappe.sendmail`, with native default fallback when none is configured.
+4. Old fixtures assumed caller-named accounts, optional verification, fingerprint login
+   and unconfigured OAuth clients. They now exercise the actual verified contracts with
+   scoped records and unique fictitious recipient/domain names.
+5. Patching a dynamic `frappe.local` attribute with `create=True` removed the framework's
+   original flags during teardown on v16. All assertions passed but Bench exited with an
+   error. The isolated-test helper explicitly restores prior context attributes; the full
+   runner now exits successfully. No framework source was patched.
+6. Legacy direct-login and Google Bruno requests used the wrong OTP purpose or a missing
+   endpoint. Their payloads, environment handling and negative bypass example are updated.
+   The playground requests a real code or consumes the emailed link from its original
+   authenticated tab; it no longer offers a developer verification bypass.
+7. Scheduled task helpers committed inside their caller's transaction. They now leave
+   commit ownership to Frappe's request/job wrapper, making rollback-owned tests possible.
+   This does not claim that the unchanged bulk cleanup handles every consumer app's data.
+
+## What the tests exercise
+
+- Real native User, OAuth Client/Bearer Token, OTP, Ghost Lead, conversion-log and
+  magic-link records; role retention and new-account native rename/reference behavior.
+- Source ownership, recipient/purpose binding, expired codes, replay rejection, disabled
+  and built-in accounts, signup/staff policy, public response allowlists and Guest permissions.
+- A failed conversion followed by rollback, and Redis guessing limits that survive a
+  database rollback.
+- Two independent DB connections racing to consume one OTP or rotate one refresh token;
+  exactly one succeeds. These tests commit only their explicit fixtures and remove them.
+- Local TCP SMTP reception using a real native Email Account, template and Email Queue;
+  the code/link extracted from actual MIME messages is then consumed in authentication.
+- Real loopback HTTP webhook delivery and HMAC over the exact received bytes.
+
+Mock boundaries are explicit: isolated unit tests mock persistence; Google tests mock the
+external provider response; transport tests use local servers, not an external mailbox.
+SMTP tests suppress native queue commits only, keeping their real SQL/transport fixtures
+rollback-owned. Native WSGI HTTP smoke tests use Werkzeug's cookie jar and temporary
+committed fixtures with cleanup. They are not an automated multi-browser UI certification.
+
+## Commands
+
+From the Bench root, on the authorized disposable site:
+
+```bash
+bench --site ecom.localhost migrate
+bench --site ecom.localhost run-tests --app ghost
+bench --site ecom.localhost run-tests --app ecom --module ecom.services.test_shopping_integration
+env/bin/python apps/ghost/scripts/smoke_email_otp.py ecom.localhost
+bench build --app ghost
+```
+
+From the Ghost Git root, the v15 isolated check:
+
+```bash
+env PYTHONPATH=/home/muneeb_mohd/frappe/ecom/apps/ghost:/home/muneeb_mohd/frappe/livo/apps/frappe \
+  PYTHONDONTWRITEBYTECODE=1 /home/muneeb_mohd/frappe/livo/env/bin/python -B -c \
+  'import unittest; unittest.main(module=None, argv=["unittest", "ghost.tests.test_auth_boundaries", "ghost.tests.test_user_details"])'
+```
+
+## Remaining merge/release gates
+
+1. Run both CI matrix jobs: Frappe v15/Python 3.12 and v16/Python 3.14, each on a
+   Frappe-only clean install and an upgrade from public commit `672dfec`. The upgrade
+   fixture includes legacy settings, an eight-character identity, an active OTP and a
+   linked lead. It asserts no data loss, old-code usability for a legitimate single
+   recipient, mandatory verification and preserved native User links.
+2. Rehearse an actual consumer clone's cutover and restore, including custom fields,
+   domain/role policy, app-owned cart/booking/customer links, token refresh and existing
+   target account ownership. Native rename can scan more linked tables than the old
+   shortcut; measure it on a representative installation before setting timeouts.
+3. Verify actual configured mailbox/SMS delivery and Google credentials, and the consuming
+   browser/app's cookie, CSRF and magic-link handoff. Local SMTP acceptance is not inbox
+   delivery, and mocked Google verification is not a live provider login.
+4. Announce the breaking contracts, explicit OTP/signup enablement and affected-credential
+   revocation policy. Keep native password login available during a planned cutover.
+5. Choose a major release version and publish release notes after these gates pass.
+   Do not combine a future internal OTP rename with this security release.
+
+No main merge, tag, Marketplace publication or production deployment is performed by
+these checks. The feature branch can be reviewed before the release gates are satisfied.

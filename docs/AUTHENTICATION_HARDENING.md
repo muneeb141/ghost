@@ -116,7 +116,10 @@ Real mailbox delivery and the Ecom OTP UI are therefore not enabled or claimed v
 and do not send real email/SMS or contact Google. The two-connection tests commit and
 remove only their explicit fixtures and restore their configuration changes.
 
-Before a public Ghost release:
+The compatibility follow-up supersedes the earlier test limitations above. See
+[the current report](COMPATIBILITY_REPORT.md) and [public upgrade guide](API_MIGRATION.md).
+Legacy tests and client examples have been migrated; the complete-suite results and actual
+remaining release gates are recorded there. The historical checklist was:
 
 - Update legacy tests/docs that depend on caller-named identities, no-proof conversion,
   fingerprint reconnection or old Login/Conversion OTP semantics. Run the complete suite.
