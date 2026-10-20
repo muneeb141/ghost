@@ -1,0 +1,101 @@
+name: Ghost compatibility
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, 'fix/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frappe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: version-15
+            python: '3.12'
+            node: '20'
+          - branch: version-16
+            python: '3.14'
+            node: '24'
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: ghost-ci-only
+          MARIADB_ROOT_HOST: '%'
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=3s --health-retries=20
+      redis-cache:
+        image: redis:7-alpine
+        ports: ['13000:6379']
+      redis-queue:
+        image: redis:7-alpine
+        ports: ['11000:6379']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: astral-sh/setup-uv@v6
+      - name: Install system tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y mariadb-client libmariadb-dev pkg-config libcups2-dev redis-tools
+          npm install --global yarn@1.22.22
+          uv tool install frappe-bench==5.31.0
+      - name: Create Frappe-only Bench
+        env:
+          FRAPPE_BRANCH: ${{ matrix.branch }}
+        run: |
+          bench init "$RUNNER_TEMP/ghost-bench" --frappe-branch "$FRAPPE_BRANCH" --skip-assets --no-backups --python "$(command -v python)"
+          cd "$RUNNER_TEMP/ghost-bench"
+          bench get-app --soft-link --skip-assets "$GITHUB_WORKSPACE"
+          bench setup requirements --dev
+          cp "$GITHUB_WORKSPACE/scripts/compatibility_site.py" "$RUNNER_TEMP/compatibility_site.py"
+          git -C apps/ghost rev-parse HEAD > "$RUNNER_TEMP/ghost-candidate-sha"
+      - name: Clean install, complete suite, HTTP session and build
+        working-directory: ${{ runner.temp }}/ghost-bench
+        run: |
+          bench new-site ghost-ci-fresh.localhost --db-host 127.0.0.1 --db-root-password ghost-ci-only --admin-password ci-admin --mariadb-user-host-login-scope '%'
+          bench --site ghost-ci-fresh.localhost install-app ghost
+          bench --site ghost-ci-fresh.localhost set-config allow_tests true
+          env/bin/python "$RUNNER_TEMP/compatibility_site.py" ghost-ci-fresh.localhost fresh
+          bench --site ghost-ci-fresh.localhost run-tests --app ghost 2>&1 | tee "$RUNNER_TEMP/ghost-fresh-tests.log"
+          env/bin/python apps/ghost/scripts/smoke_email_otp.py ghost-ci-fresh.localhost
+          bench build --app ghost
+      - name: Install the previous public code and seed existing records
+        working-directory: ${{ runner.temp }}/ghost-bench
+        run: |
+          git -C apps/ghost fetch https://github.com/muneeb141/ghost.git 672dfec9346dfd935c87fdc6ded554014a36d7f4 --depth=1
+          git -C apps/ghost checkout --detach 672dfec9346dfd935c87fdc6ded554014a36d7f4
+          bench new-site ghost-ci-upgrade.localhost --db-host 127.0.0.1 --db-root-password ghost-ci-only --admin-password ci-admin --mariadb-user-host-login-scope '%'
+          bench --site ghost-ci-upgrade.localhost install-app ghost
+          bench --site ghost-ci-upgrade.localhost set-config allow_tests true
+          env/bin/python "$RUNNER_TEMP/compatibility_site.py" ghost-ci-upgrade.localhost seed
+      - name: Upgrade without losing existing identities, OTPs or links
+        working-directory: ${{ runner.temp }}/ghost-bench
+        run: |
+          git -C apps/ghost checkout --detach "$(cat "$RUNNER_TEMP/ghost-candidate-sha")"
+          bench --site ghost-ci-upgrade.localhost migrate
+          env/bin/python "$RUNNER_TEMP/compatibility_site.py" ghost-ci-upgrade.localhost upgrade
+          bench --site ghost-ci-upgrade.localhost run-tests --app ghost 2>&1 | tee "$RUNNER_TEMP/ghost-upgrade-tests.log"
+          env/bin/python apps/ghost/scripts/smoke_email_otp.py ghost-ci-upgrade.localhost
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ghost-${{ matrix.branch }}-evidence
+          path: |
+            ${{ runner.temp }}/ghost-*-tests.log
+            ${{ runner.temp }}/ghost-bench/logs/*.log
