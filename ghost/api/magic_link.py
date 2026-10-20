@@ -75,7 +75,12 @@ def send_magic_link(ghost_email, real_email):
 
 	# Send email
 	try:
-		frappe.sendmail(recipients=[real_email], subject=subject, content=content, now=True)
+		sender = (
+			frappe.db.get_value("Email Account", settings.email_account, "email_id")
+			if settings.email_account
+			else None
+		)
+		frappe.sendmail(recipients=[real_email], sender=sender, subject=subject, content=content, now=True)
 	except Exception as e:
 		frappe.log_error(message=str(e), title="Magic Link Email Failed")
 		frappe.throw(_("Could not send the login link. Please try again later."))
