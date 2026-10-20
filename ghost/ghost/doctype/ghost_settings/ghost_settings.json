@@ -288,10 +288,11 @@
         },
         {
             "default": "0",
-            "description": "If enabled, allows generating OTPs without email or phone. The OTP code will be returned in the API response.",
+            "description": "Legacy setting: every OTP must identify exactly one email address or phone number.",
             "fieldname": "allow_anonymous_otp",
             "fieldtype": "Check",
-            "label": "Allow Anonymous OTP"
+            "label": "Allow Anonymous OTP",
+            "read_only": 1
         },
         {
             "default": "0",
@@ -460,10 +461,11 @@
         },
         {
             "default": "0",
-            "description": "Automatically merge multiple ghost sessions belonging to the same user upon conversion.",
+            "description": "Legacy setting: automatic merging by captured email or fingerprint is disabled. Consumer apps must verify ownership of each source.",
             "fieldname": "enable_multi_device_merge",
             "fieldtype": "Check",
-            "label": "Enable Multi-Device Merge"
+            "label": "Enable Multi-Device Merge",
+            "read_only": 1
         },
         {
             "default": "Lead Email",

@@ -54,31 +54,26 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 	email, phone = normalize_recipients(email, phone)
 	settings = frappe.get_single("Ghost Settings")
 	require_test_sandbox(settings)
+	if bool(email) == bool(phone):
+		frappe.throw(_("Provide exactly one OTP recipient: email or phone"))
+	purpose = purpose or "Login"
+	if purpose not in ("Login", "Conversion", "Sign Up", "Reset Password"):
+		frappe.throw(_("Invalid OTP purpose"))
 	delivery_method = settings.otp_delivery_type or "Email"
-
-	# ── Sandbox short-circuit ────────────────────────────────────────────────
-	# When sandbox mode is active, bypass all real OTP generation and delivery.
-	# Return the fixed code immediately - no DB record, no email/SMS.
+	if delivery_method == "Both":
+		delivery_method = "Email" if email else "SMS"
+	if (delivery_method == "Email" and not email) or (delivery_method == "SMS" and not phone):
+		frappe.throw(_("The requested OTP delivery channel is not configured"))
+	if delivery_method not in ("Email", "SMS"):
+		frappe.throw(_("Configure an OTP delivery channel"))
 	if getattr(settings, "sandbox_mode", 0):
-		sandbox_otp = getattr(settings, "sandbox_otp", None) or "000141"
-		frappe.logger().debug("Ghost: sandbox_mode active - returning fixed OTP")
 		return {
-			"otp_code": sandbox_otp,
+			"otp_code": settings.sandbox_otp or "000141",
 			"name": None,
 			"sent": False,
 			"send_results": [],
 			"sandbox": True,
 		}
-	# ─────────────────────────────────────────────────────────────────────────
-
-	if not settings.allow_anonymous_otp:
-		if delivery_method in ["Email", "Both"] and not email:
-			frappe.throw(_(f"Email is required for {delivery_method} delivery method"))
-
-		if delivery_method in ["SMS", "Both"] and not phone:
-			frappe.throw(_(f"Phone is required for {delivery_method} delivery method"))
-	if not purpose:
-		purpose = "Login"
 
 	otp_length = settings.otp_length or 6
 	otp_code_type = settings.otp_code_type or "Numeric"
@@ -149,7 +144,7 @@ def verify(otp_code, email=None, phone=None, purpose=None):
 	purpose = purpose or "Login"
 	if (
 		purpose not in ("Login", "Conversion", "Sign Up", "Reset Password")
-		or not (email or phone)
+		or bool(email) == bool(phone)
 		or not otp_code
 	):
 		frappe.throw(_("OTP, recipient and a valid purpose are required"))
@@ -180,6 +175,7 @@ def verify(otp_code, email=None, phone=None, purpose=None):
 		not row
 		or row.status != "Valid"
 		or row.purpose != purpose
+		or bool(row.email) == bool(row.phone)
 		or (email and row.email != email)
 		or (phone and row.phone != phone)
 		or not hmac.compare_digest(str(row.otp_code), str(otp_code))
