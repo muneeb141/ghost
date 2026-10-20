@@ -21,7 +21,9 @@ def update_mobile_number(mobile_no=None, otp_code=None):
 
 	existing_owner = frappe.db.get_value("User", {"mobile_no": mobile_no}, "name")
 	if existing_owner and existing_owner != user:
-		frappe.throw(_("This mobile number is already associated with another account"), frappe.ValidationError)
+		frappe.throw(
+			_("This mobile number is already associated with another account"), frappe.ValidationError
+		)
 
 	verify_otp(otp_code, phone=mobile_no, purpose="Conversion")
 	frappe.db.set_value("User", user, "mobile_no", mobile_no)

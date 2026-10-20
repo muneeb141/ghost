@@ -1,16 +1,18 @@
 import frappe
 
-def create_magic_link_template():
-    frappe.init(site="huf-reason.localhost")
-    frappe.connect()
 
-    template_name = "Ghost Magic Link"
-    if not frappe.db.exists("Email Template", template_name):
-        doc = frappe.get_doc({
-            "doctype": "Email Template",
-            "name": template_name,
-            "subject": "Activate Your Account 🚀",
-            "response": """<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaec; border-radius: 8px; background-color: #ffffff;">
+def create_magic_link_template():
+	frappe.init(site="huf-reason.localhost")
+	frappe.connect()
+
+	template_name = "Ghost Magic Link"
+	if not frappe.db.exists("Email Template", template_name):
+		doc = frappe.get_doc(
+			{
+				"doctype": "Email Template",
+				"name": template_name,
+				"subject": "Activate Your Account 🚀",
+				"response": """<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaec; border-radius: 8px; background-color: #ffffff;">
     <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eaeaec;">
         <h2 style="color: #333333; margin: 0;">Welcome!</h2>
     </div>
@@ -28,13 +30,15 @@ def create_magic_link_template():
     <div style="text-align: center; padding-top: 20px; border-top: 1px solid #eaeaec; color: #aaaaaa; font-size: 12px;">
         &copy; {{ frappe.utils.get_url() }}
     </div>
-</div>"""
-        })
-        doc.insert(ignore_permissions=True)
-        frappe.db.commit() # nosemgrep: frappe-manual-commit - required in standalone management CLI script where HTTP transaction wrapping is absent
-        print("Template created successfully!")
-    else:
-        print("Template already exists.")
+</div>""",
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		frappe.db.commit()  # nosemgrep: frappe-manual-commit - required in standalone management CLI script where HTTP transaction wrapping is absent
+		print("Template created successfully!")
+	else:
+		print("Template already exists.")
+
 
 if __name__ == "__main__":
-    create_magic_link_template()
+	create_magic_link_template()

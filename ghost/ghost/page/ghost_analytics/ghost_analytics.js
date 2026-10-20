@@ -53,8 +53,14 @@ frappe.pages["ghost-analytics"].on_page_load = function (wrapper) {
 			{ label: __("Merged Sessions"), value: data.total_merged_ghosts || 0 },
 			{ label: __("Session Conversion Rate"), value: (data.conversion_rate || 0) + "%" },
 			{ label: __("Lead Conversion Rate"), value: (data.lead_conversion_rate || 0) + "%" },
-			{ label: __("Reminder Recovery Rate"), value: (data.reminder_recovery_rate || 0) + "%" },
-			{ label: __("Avg Conversion Time"), value: (data.avg_conversion_duration_ms || 0) + " ms" },
+			{
+				label: __("Reminder Recovery Rate"),
+				value: (data.reminder_recovery_rate || 0) + "%",
+			},
+			{
+				label: __("Avg Conversion Time"),
+				value: (data.avg_conversion_duration_ms || 0) + " ms",
+			},
 		];
 		const html = cards
 			.map(
@@ -90,14 +96,14 @@ frappe.pages["ghost-analytics"].on_page_load = function (wrapper) {
 		const days = get_date_range(days_count);
 		const sessions = daily_counts(data.daily.sessions);
 		const conversions = daily_counts(data.daily.conversions);
-		
-		page.main.find(".ghost-daily-chart .chart-title").text(
-			__("Traffic & Conversions Trend (Last {0} Days)", [days_count])
-		);
+
+		page.main
+			.find(".ghost-daily-chart .chart-title")
+			.text(__("Traffic & Conversions Trend (Last {0} Days)", [days_count]));
 
 		new frappe.Chart(page.main.find(".ghost-daily-chart .chart-body")[0], {
 			data: {
-				labels: days.map(d => frappe.datetime.str_to_user(d).substring(0, 5)),
+				labels: days.map((d) => frappe.datetime.str_to_user(d).substring(0, 5)),
 				datasets: [
 					{
 						name: __("Ghost Sessions"),
@@ -115,7 +121,7 @@ frappe.pages["ghost-analytics"].on_page_load = function (wrapper) {
 			axisOptions: {
 				xIsSeries: 1,
 				shortenYAxisNumbers: 1,
-			}
+			},
 		});
 	}
 
@@ -123,16 +129,20 @@ frappe.pages["ghost-analytics"].on_page_load = function (wrapper) {
 		const modes = data.conversions_by_mode || [];
 		const $body = page.main.find(".ghost-mode-chart .chart-body");
 		if (!modes.length) {
-			$body.html(`<p class="text-muted" style="padding: 20px; text-align: center;">${__("No conversion modes logged yet.")}</p>`);
+			$body.html(
+				`<p class="text-muted" style="padding: 20px; text-align: center;">${__(
+					"No conversion modes logged yet."
+				)}</p>`
+			);
 			return;
 		}
 		new frappe.Chart($body[0], {
 			data: {
 				labels: modes.map((m) => {
 					const labelMap = {
-						"manual_migration": __("Account Merge"),
-						"rename": __("New Account"),
-						"already_converted": __("Already Converted"),
+						manual_migration: __("Account Merge"),
+						rename: __("New Account"),
+						already_converted: __("Already Converted"),
 					};
 					return labelMap[m.conversion_mode] || m.conversion_mode;
 				}),
@@ -148,7 +158,11 @@ frappe.pages["ghost-analytics"].on_page_load = function (wrapper) {
 		const channels = data.conversions_by_channel || [];
 		const $body = page.main.find(".ghost-channel-chart .chart-body");
 		if (!channels.length) {
-			$body.html(`<p class="text-muted" style="padding: 20px; text-align: center;">${__("No conversion channels logged yet.")}</p>`);
+			$body.html(
+				`<p class="text-muted" style="padding: 20px; text-align: center;">${__(
+					"No conversion channels logged yet."
+				)}</p>`
+			);
 			return;
 		}
 		new frappe.Chart($body[0], {
@@ -167,7 +181,7 @@ frappe.pages["ghost-analytics"].on_page_load = function (wrapper) {
 		frappe.call({
 			method: "ghost.ghost.page.ghost_analytics.ghost_analytics.get_analytics_data",
 			args: {
-				days: days_val
+				days: days_val,
 			},
 			callback: function (r) {
 				if (!r.message) {

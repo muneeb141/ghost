@@ -168,18 +168,9 @@ ghost_conversion_hooks = []
 # Scheduled Tasks
 # ---------------
 scheduler_events = {
-	"daily": [
-		"ghost.tasks.delete_expired_ghost_users",
-		"ghost.tasks.delete_old_conversion_logs"
-	],
-	"hourly": [
-		"ghost.tasks.send_lead_reminders"
-	],
-	"cron": {
-		"*/10 * * * *": [
-			"ghost.tasks.expire_otps"
-		]
-	}
+	"daily": ["ghost.tasks.delete_expired_ghost_users", "ghost.tasks.delete_old_conversion_logs"],
+	"hourly": ["ghost.tasks.send_lead_reminders"],
+	"cron": {"*/10 * * * *": ["ghost.tasks.expire_otps"]},
 }
 
 
@@ -264,18 +255,4 @@ scheduler_events = {
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
-fixtures = [
-    {
-        "dt": "Email Template",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                    "Ghost Magic Link"
-                ]
-            ]
-        ]
-    }
-]
-
+fixtures = [{"dt": "Email Template", "filters": [["name", "in", ["Ghost Magic Link"]]]}]
