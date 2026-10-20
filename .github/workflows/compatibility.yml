@@ -68,6 +68,7 @@ jobs:
           bench get-app --soft-link --skip-assets "$GITHUB_WORKSPACE"
           bench setup requirements --dev
           bench version
+          bench build --app frappe
           cp "$GITHUB_WORKSPACE/scripts/compatibility_site.py" "$RUNNER_TEMP/compatibility_site.py"
           git -C apps/ghost rev-parse HEAD > "$RUNNER_TEMP/ghost-candidate-sha"
       - name: Clean install, complete suite, HTTP session and build

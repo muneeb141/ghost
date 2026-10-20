@@ -17,6 +17,7 @@ cart, booking or other business data into an already existing account automatica
 
 | Existing use | Candidate behavior | Required client or administrator action |
 | --- | --- | --- |
+| GET requests used for authentication writes | Restricted to POST | Send POST with the appropriate bearer or native cookie/CSRF credentials |
 | `create_ghost_session(email=...)` | Rejected, including a new caller-selected email | Send no email; save the server-generated identity and issued credentials |
 | Fingerprint used to resume an account | Always creates a new anonymous identity | Resume with valid credentials, never with a device fingerprint |
 | Eight-character server-generated Ghost identity | Accepted when domain, owner, role, enabled state and Website User type match | Keep its issued credentials; test any custom domain or role configuration |

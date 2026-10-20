@@ -66,10 +66,14 @@ class TestRealTransports(GhostIntegrationCase):
 	def test_real_smtp_delivers_code_used_for_login(self):
 		with smtp_capture() as server:
 			self.prepare_mail(server.server_address[1])
-			with patch.dict(frappe.flags, {"testing_email": True, "mute_emails": False}):
+			with (
+				patch.dict(frappe.flags, {"testing_email": True, "mute_emails": False}),
+				patch.object(frappe.db, "commit"),
+			):
 				result = send_otp(email=self.email, purpose="Login")
 			self.assertEqual(result["status"], "success")
-			self.assertEqual(self.deliver_queued_messages(), 1)
+			# v15 can send now; v16 can defer until commit. Flush only pending mail.
+			self.deliver_queued_messages()
 			self.assertEqual(len(server.messages), 1)
 			code = re.search(r"Code (\d{6})", self.body(server.messages[0])).group(1)
 			self.assertNotIn(code, str(result))
@@ -89,9 +93,14 @@ class TestRealTransports(GhostIntegrationCase):
 			).insert()
 			self.configure(enable_magic_link=1, magic_link_email_template=template.name)
 			source = self.new_ghost()["user"]
-			with self.actor(source), patch.dict(frappe.flags, {"testing_email": True, "mute_emails": False}):
+			with (
+				self.actor(source),
+				patch.dict(frappe.flags, {"testing_email": True, "mute_emails": False}),
+				patch.object(frappe.db, "commit"),
+			):
 				result = send_magic_link(source, self.email)
-			self.assertEqual(self.deliver_queued_messages(), 1)
+			# v15 can send now; v16 can defer until commit. Flush only pending mail.
+			self.deliver_queued_messages()
 			self.assertEqual(len(server.messages), 1)
 			token = re.search(r"/convert\?token=([A-Za-z0-9_-]+)", self.body(server.messages[0])).group(1)
 			self.assertNotIn(token, str(result))
