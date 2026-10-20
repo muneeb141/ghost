@@ -1,6 +1,7 @@
 # Copyright (c) 2025, OTP Generation and contributors
 # For license information, please see license.txt
 
+import hmac
 import secrets
 import string
 
@@ -9,6 +10,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_to_date, get_datetime, now_datetime
 
+from ghost.security import limit_verification, normalize_recipients, require_test_sandbox
 from ghost.sender import send_otp
 
 
@@ -34,6 +36,7 @@ class OTP(Document):
 	def expire_all_otps(self):
 		filters = {
 			"status": "Valid",
+			"purpose": self.purpose,
 			"name": ["!=", self.name],
 		}
 		if self.email:
@@ -48,15 +51,17 @@ class OTP(Document):
 
 
 def generate(email=None, phone=None, purpose=None, user=None, send=True):
+	email, phone = normalize_recipients(email, phone)
 	settings = frappe.get_single("Ghost Settings")
+	require_test_sandbox(settings)
 	delivery_method = settings.otp_delivery_type or "Email"
 
 	# ── Sandbox short-circuit ────────────────────────────────────────────────
 	# When sandbox mode is active, bypass all real OTP generation and delivery.
-	# Return the fixed code immediately – no DB record, no email/SMS.
+	# Return the fixed code immediately - no DB record, no email/SMS.
 	if getattr(settings, "sandbox_mode", 0):
 		sandbox_otp = getattr(settings, "sandbox_otp", None) or "000141"
-		frappe.logger().debug("Ghost: sandbox_mode active – returning fixed OTP")
+		frappe.logger().debug("Ghost: sandbox_mode active - returning fixed OTP")
 		return {
 			"otp_code": sandbox_otp,
 			"name": None,
@@ -74,8 +79,6 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 			frappe.throw(_(f"Phone is required for {delivery_method} delivery method"))
 	if not purpose:
 		purpose = "Login"
-
-
 
 	otp_length = settings.otp_length or 6
 	otp_code_type = settings.otp_code_type or "Numeric"
@@ -110,7 +113,6 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 		try:
 			if delivery_method in ["Email", "Both"] and email:
 				email_result = send_otp(
-
 					otp_code=otp_code,
 					delivery_method="Email",
 					email=email,
@@ -122,7 +124,6 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 
 			if delivery_method in ["SMS", "Both"] and phone:
 				sms_result = send_otp(
-
 					otp_code=otp_code, delivery_method="SMS", email=email, phone=phone, otp_name=otp_doc.name
 				)
 				if sms_result:
@@ -131,9 +132,6 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 			frappe.log_error(
 				message=f"OTP generated but failed to send: {frappe.get_traceback()}", title="OTP Generation"
 			)
-
-
-
 
 	return {
 		"otp_code": otp_code,
@@ -144,64 +142,52 @@ def generate(email=None, phone=None, purpose=None, user=None, send=True):
 
 
 def verify(otp_code, email=None, phone=None, purpose=None):
-	# ── Sandbox short-circuit ────────────────────────────────────────────────
-	# Use get_cached_doc so repeated verify() calls during a test run don't
-	# incur extra DB round-trips for the settings read.
+	"""Verify a recipient/purpose-bound code and consume it under a row lock."""
+	email, phone = normalize_recipients(email, phone)
 	settings = frappe.get_cached_doc("Ghost Settings")
+	require_test_sandbox(settings)
+	purpose = purpose or "Login"
+	if (
+		purpose not in ("Login", "Conversion", "Sign Up", "Reset Password")
+		or not (email or phone)
+		or not otp_code
+	):
+		frappe.throw(_("OTP, recipient and a valid purpose are required"))
+	identity = f"{email or ''}|{phone or ''}"
+	limit_verification(identity, purpose, int(settings.max_otp_attempts or 5))
 	if getattr(settings, "sandbox_mode", 0):
-		sandbox_otp = getattr(settings, "sandbox_otp", None) or "000141"
-		if otp_code == sandbox_otp:
-			frappe.logger().debug("Ghost: sandbox_mode – OTP accepted")
+		if hmac.compare_digest(str(otp_code), str(settings.sandbox_otp or "000141")):
 			return {"valid": True, "sandbox": True}
 		frappe.throw(_("Invalid OTP"))
-	# ─────────────────────────────────────────────────────────────────────────
-
-	otp_doc = None
-	if not purpose:
-		purpose = "Login"
-
-	if email and frappe.db.exists(
-
-		"OTP", {"otp_code": otp_code, "email": email, "status": "Valid", "purpose": purpose}
-	):
-		otp_doc = frappe.get_doc(
+	filters = {"status": "Valid", "purpose": purpose}
+	if email:
+		filters["email"] = email
+	if phone:
+		filters["phone"] = phone
+	name = frappe.db.get_value("OTP", filters, "name", order_by="creation desc")
+	row = (
+		frappe.db.get_value(
 			"OTP",
-			{"otp_code": otp_code, "email": email, "status": "Valid", "purpose": purpose},
+			name,
+			["name", "otp_code", "expiry", "status", "email", "phone", "purpose"],
+			as_dict=True,
+			for_update=True,
 		)
-	elif phone and frappe.db.exists(
-		"OTP", {"otp_code": otp_code, "phone": phone, "status": "Valid", "purpose": purpose}
+		if name
+		else None
+	)
+	if (
+		not row
+		or row.status != "Valid"
+		or row.purpose != purpose
+		or (email and row.email != email)
+		or (phone and row.phone != phone)
+		or not hmac.compare_digest(str(row.otp_code), str(otp_code))
 	):
-		otp_doc = frappe.get_doc(
-			"OTP",
-			{"otp_code": otp_code, "phone": phone, "status": "Valid", "purpose": purpose},
-		)
-	
-	else:
-		settings = frappe.get_single("Ghost Settings")
-		if settings.allow_anonymous_otp and not email and not phone:
-			if frappe.db.exists(
-				"OTP", {"otp_code": otp_code, "status": "Valid", "purpose": purpose}
-			):
-				otp_doc = frappe.get_doc(
-					"OTP",
-					{"otp_code": otp_code, "status": "Valid", "purpose": purpose},
-				)
-
-
-
-
-	if not otp_doc:
 		frappe.throw(_("Invalid OTP"))
-
-
-	otp_doc.check_expiry()
-
-	if otp_doc.status == "Expired":
+	if get_datetime(row.expiry) <= get_datetime(now_datetime()):
 		frappe.throw(_("OTP has expired"))
-
-	otp_doc.status = "Expired"
-	otp_doc.save(ignore_permissions=True)
-
+	frappe.db.set_value("OTP", row.name, "status", "Expired")
 	return {"valid": True}
 
 
