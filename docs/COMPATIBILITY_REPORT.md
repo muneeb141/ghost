@@ -83,7 +83,8 @@ before merging. The linked historical jobs remain pinned evidence for the preced
 8. An existing site's mixed-case Ghost domain could fail the new anonymous ownership check
    because Frappe normalizes User emails to lowercase. A real existing-identity test failed
    with PermissionError before the fix. Anonymous creation and ownership matching now
-   normalize the configured domain to lowercase; the exact owner, role and account checks remain.
+   normalize the configured domain to lowercase and resolve the older mixed-case source payload
+   to its canonical native User name; the exact owner, role and account checks remain.
 
 ## CI failures resolved before passing
 

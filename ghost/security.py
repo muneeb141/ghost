@@ -8,6 +8,8 @@ from frappe import _
 
 
 def require_owned_ghost(ghost_email):
+	# Native User names are lowercase; legacy clients may retain domain case.
+	ghost_email = str(ghost_email or "").strip().lower()
 	settings = frappe.get_single("Ghost Settings")
 	actor = frappe.session.user
 	domain = (settings.ghost_email_domain or "guest.local").lower()

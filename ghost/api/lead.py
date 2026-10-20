@@ -17,7 +17,7 @@ def capture_email(email, ghost_email=None):
 
 	from ghost.security import require_owned_ghost
 
-	require_owned_ghost(ghost_email)
+	ghost_email = require_owned_ghost(ghost_email)
 	if not ghost_email or ghost_email == "Guest" or not email:
 		frappe.throw(_("Both ghost_email and email are required"))
 

@@ -12,7 +12,7 @@ def send_magic_link(ghost_email, real_email):
 	"""Generate and send a magic link for conversion."""
 	from ghost.security import require_owned_ghost
 
-	require_owned_ghost(ghost_email)
+	ghost_email = require_owned_ghost(ghost_email)
 	settings = frappe.get_single("Ghost Settings")
 
 	if not settings.enable_magic_link:

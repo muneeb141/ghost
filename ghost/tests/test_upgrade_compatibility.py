@@ -55,5 +55,11 @@ class TestUpgradeCompatibility(GhostIntegrationCase):
 	def test_custom_domain_case_does_not_break_existing_anonymous_owners(self):
 		source = self.new_ghost()["user"]
 		self.configure(ghost_email_domain=self.settings.ghost_email_domain.upper())
-		result = self.convert(source)
+		# Older session responses retained the configured domain's original case.
+		legacy_source = source.split("@")[0] + "@" + self.settings.ghost_email_domain
+		code = self.code(purpose="Conversion")
+		from ghost.api.ghost import convert_to_real_user
+
+		with self.actor(source):
+			result = convert_to_real_user(legacy_source, self.email, otp_code=code)
 		self.assertEqual(result["user"], self.email)

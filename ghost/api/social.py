@@ -11,7 +11,7 @@ def convert_with_google(ghost_email, id_token):
 	"""
 	from ghost.security import require_owned_ghost
 
-	require_owned_ghost(ghost_email)
+	ghost_email = require_owned_ghost(ghost_email)
 	settings = frappe.get_single("Ghost Settings")
 
 	if not settings.enable_social_login:

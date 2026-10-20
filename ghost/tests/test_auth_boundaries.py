@@ -121,7 +121,7 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 		self.db.get_value.return_value = None
 		template = frappe._dict(subject="test", response="test")
 		with (
-			patch.object(security, "require_owned_ghost"),
+			patch.object(security, "require_owned_ghost", return_value="ghost_12345678@guest.local"),
 			patch.object(frappe, "get_doc", side_effect=[Mock(), template]),
 			patch.object(frappe, "render_template", return_value="test"),
 			patch.object(frappe, "sendmail"),

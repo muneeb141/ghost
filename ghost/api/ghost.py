@@ -61,7 +61,7 @@ def convert_to_real_user(
 		frappe.throw(_("OTP login is disabled"), frappe.PermissionError)
 	if bypass_otp or conversion_channel != "OTP":
 		frappe.throw(_("Verification cannot be bypassed by an API caller"), frappe.PermissionError)
-	require_owned_ghost(ghost_email)
+	ghost_email = require_owned_ghost(ghost_email)
 	if not otp_code or not real_email:
 		frappe.throw(_("Target identity and OTP code are required"))
 	phone = real_email.split("@")[0] if real_email.endswith("@mobile.login") else None
@@ -85,7 +85,7 @@ def _convert_verified_user(
 
 	from ghost.security import normalize_recipients, require_enabled_user, require_owned_ghost
 
-	require_owned_ghost(ghost_email)
+	ghost_email = require_owned_ghost(ghost_email)
 	real_email, _phone = normalize_recipients(real_email)
 	if not real_email or real_email == ghost_email or real_email.startswith("ghost_"):
 		frappe.throw(_("A non-anonymous target identity is required"), frappe.PermissionError)
