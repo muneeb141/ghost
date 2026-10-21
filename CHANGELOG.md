@@ -37,6 +37,23 @@ release. Existing installations must follow [API_MIGRATION.md](docs/API_MIGRATIO
 - Magic-link and Google conversion require the originating anonymous credentials. Existing
   target roles are retained; consumer business-data migration remains the consumer app's job.
 
+### Integration and Marketplace review follow-up
+
+- Keep main as the public default/distribution branch and use develop for reviewed integration.
+  Feature/fix PRs target develop; release promotion remains manual and explicitly authorized.
+- Add quality CI with pinned Frappe/Press Semgrep rules, repository preflight and unsuppressed
+  evidence; expand compatibility triggers to develop and feature/release work.
+- Use native filtered database updates and EmailTemplate rendering, annotate public inputs,
+  and prevent public Desk-role signup independently of the existing-staff OTP policy.
+- Replace raw User deletion with bounded native cleanup. Retain/disable linked expired identities,
+  revoke their bearer credentials and clear sessions after commit; protect staff and custom names.
+- Repair the legacy setup.py version import and declare SPDX license/project URLs.
+  Disable obsolete helper scripts that targeted a hard-coded site/path.
+- Add 14 database regressions for owned-device convergence, fixed-test-code boundaries,
+  HTML templates, signup roles, native cleanup and session/transaction rollback.
+- Document device-authentication limits, verified merge ownership, proposed features,
+  privacy/data handling, Marketplace findings and the remaining live-release gates.
+
 ### Compatibility and fixes
 
 - Rename the internal `OTP` DocType/table to `Ghost OTP`/`tabGhost OTP` using a guarded,

@@ -119,3 +119,26 @@ See [the compatibility report](COMPATIBILITY_REPORT.md) for current evidence and
 6. Verify real mailbox delivery, login, logout, refresh, CSRF and app-specific ownership
    in staging, then smoke-test the live cutover. Google needs actual provider credentials.
 7. Publish a versioned changelog and migration notice before Marketplace distribution.
+
+## Integration branch and cleanup follow-up
+
+The integration branch is `develop`; feature/fix PRs target it. `main` remains the repository
+default/distribution branch and receives only an explicitly authorized reviewed release.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) and [the Marketplace review](MARKETPLACE_REVIEW.md).
+
+The standards follow-up replaces raw anonymous User deletion with native Frappe deletion.
+Only expired server-shaped Website Users with the configured Ghost role qualify. Native-linked
+identities are disabled with bearer credentials revoked and sessions cleared; their references
+are retained. At most 100 candidates are considered per run, respecting smaller settings.
+Consumers must review their own Data/Text ownership and retention policies. No forced linked
+record deletion, bulk cross-device merge or complete personal-data erasure is promised.
+
+Public signup now rejects a Desk-capable default role even when existing staff OTP login is
+explicitly enabled. Configure a portal role; existing staff roles remain unchanged. Public API
+parameters have native type annotations; malformed payload shapes are rejected by dispatch.
+The legacy setup.py shim now reads the canonical package version; the wheel declares SPDX MIT
+metadata and public project URLs without adding runtime business-app dependencies.
+
+The obsolete root `create_fixture.py` and `update_settings.py` helpers no longer connect to a
+hard-coded site/path. Their callable names now raise an explicit migration message. Use the
+bundled versioned fixture or Desk for custom templates, and Desk/versioned migrations for settings.

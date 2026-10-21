@@ -12,6 +12,7 @@
   <aside class="sidebar" id="sidebar">
     <a href="#getting-started" class="brand">Ghost</a>
     <nav>
+      <a class="nav-link" href="#branches">Branches</a>
       <a class="nav-link" href="#getting-started">Setup</a>
       <a class="nav-link" href="#api">API contracts</a>
       <a class="nav-link" href="#frontend">Portal and headless clients</a>
@@ -34,9 +35,21 @@
       Update direct DocType/REST/SQL consumers before cutover. Follow the <a href="API_MIGRATION.md">migration matrix and cutover checklist</a>.
       Read the <a href="COMPATIBILITY_REPORT.md">actual verification results and remaining gates</a>.</p>
     </div>
+    <section id="branches">
+      <h2>Branches and release policy</h2>
+      <p><code>main</code> is the public distribution/default branch. <code>develop</code> contains
+        unreleased integration work and must only be used on disposable staging sites.
+        Feature/fix pull requests target develop. A reviewed release is promoted manually to main
+        after testing and explicit maintainer authorization; CI never merges or publishes it.</p>
+      <p>The current main still predates the candidate repairs. Read the migration notice and
+        schedule the verified cutover. Branch naming alone does not certify security.</p>
+      <p><a href="../CONTRIBUTING.md">Contributor workflow</a> ·
+        <a href="AUTH_DESIGN.md">Device identity, testing and verified merges</a> ·
+        <a href="MARKETPLACE_REVIEW.md">Marketplace review and outstanding release gates</a></p>
+    </section>
     <section id="getting-started">
       <h2>Setup</h2>
-      <pre><code>bench get-app https://github.com/muneeb141/ghost
+      <pre><code>bench get-app --branch main https://github.com/muneeb141/ghost
 bench --site your-site install-app ghost</code></pre>
       <p>Configure the OAuth Client and the anonymous Website User role in Ghost Settings before
         enabling Ghost Feature. For OTP login, configure an outgoing Email Account/template or

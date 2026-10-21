@@ -22,10 +22,39 @@ Ghost has no ERPNext or ecommerce dependency. Supported framework range: v15 and
 >
 > The release must carry versioned GitHub and Marketplace upgrade notes before distribution.
 
+## Branches and release policy
+
+| Branch | Purpose | Intended audience |
+| --- | --- | --- |
+| `main` | Stable distribution branch; repository default | Public installations using an approved release |
+| `develop` | Integration and next-release testing; not a production release | Contributors and disposable staging sites |
+| `feat/*`, `fix/*` | Focused changes based on `develop` | Pull requests targeting `develop` |
+| `release/*` | Optional release freeze and final verification | Release reviewers |
+
+Changes flow through feature/fix PRs into `develop`, then a maintainer-reviewed release PR
+into `main`. Passing CI never merges or publishes code automatically. Promotion to `main`
+requires the maintainer's explicit release authorization. Keep `main` as the default branch;
+contributors select `develop` as their PR base. Branch protection is configured separately
+in GitHub; the workflows alone do not enforce it.
+
+The current `main` still contains the older public code. It does **not** contain this
+candidate's authentication repairs or OTP rename yet. Existing installations should review
+the security changes and arrange the documented cutover; the stable branch name alone is
+not a security certification. Release promotion is pending validation and authorization.
+
+For candidate testing only, on a disposable staging Bench:
+
+```bash
+bench get-app --branch develop https://github.com/muneeb141/ghost
+```
+
+See [contributor workflow](CONTRIBUTING.md), [authentication design and roadmap](docs/AUTH_DESIGN.md),
+and [Marketplace review and release gates](docs/MARKETPLACE_REVIEW.md).
+
 ## Install and configure
 
 ```bash
-bench get-app https://github.com/muneeb141/ghost
+bench get-app --branch main https://github.com/muneeb141/ghost
 bench --site your-site install-app ghost
 ```
 
@@ -35,7 +64,8 @@ In **Ghost Settings**, configure only the features your application uses:
   `Ghost`, then enable Ghost Feature. Persist the issued credentials securely.
 - Email/SMS login: configure the outgoing Email Account/template or SMS provider, then
   explicitly enable OTP Login. Enable Public Signup only if visitors may create accounts.
-- Staff OTP login: separately opt in if required; built-in users remain excluded.
+- Staff OTP login: separately opt in for existing staff if required; built-in users remain excluded.
+  Public signup always requires a role without Desk access, even when staff login is enabled.
 - Google conversion and magic links: configure and enable each provider separately.
   Both require the originating anonymous identity's credentials.
 - Conversion webhooks/hooks and analytics: optional; business-data reassignment belongs
@@ -127,7 +157,7 @@ from the previous public commit. A configured workflow is not evidence that it h
 require both matrix jobs to pass before merging or distributing a release.
 
 Use the [Bruno collection](bruno/README.md) for manual API checks with your own test
-recipient and actual delivered code. Submit focused pull requests against `main`, with
+recipient and actual delivered code. Submit focused feature/fix pull requests against `develop`, with
 compatibility evidence and migration notes for any public behavior change.
 
 MIT license. Maintainer: Muneeb Mohammed.

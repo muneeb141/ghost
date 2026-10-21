@@ -1,7 +1,34 @@
 # Ghost compatibility report
 
-Date: 2026-10-21. Candidate branch: `fix/ghost-otp-rename`, based on `fix/auth-boundaries` at `949155e`.
+Date: 2026-10-21. Current integration branch: `develop`, based on the verified rename candidate
+`ffba630` (`fix/ghost-otp-rename`, including `fix/auth-boundaries`).
 Comparison: public `main` at `672dfec9346dfd935c87fdc6ded554014a36d7f4`.
+
+## Develop standards and release follow-up
+
+The follow-up uses native filtered database updates/EmailTemplate methods, typed public APIs,
+portal-only public signup roles and bounded native anonymous cleanup. It adds 14 database
+regressions and repairs packaging/site-specific helper issues. See
+[the source review and release gates](MARKETPLACE_REVIEW.md) and
+[the contributor branch policy](../CONTRIBUTING.md).
+
+| Local follow-up check | Result | Evidence |
+| --- | --- | --- |
+| Complete Ghost suite | 149 passed: 107 integration + 42 isolated | `/tmp/ghost-marketplace-full-tests.log` |
+| HTTP login and owned conversion | Passed: HttpOnly session, follow-up, no default bearer credentials, replay denial | `/tmp/ghost-marketplace-http.log` |
+| Migration and Ghost build | Passed | `/tmp/ghost-marketplace-migrate.log`, `/tmp/ghost-marketplace-build.log` |
+| Isolated wheel and legacy setup shim | Passed; canonical schema/patch/license packaged and correct version reported | `/tmp/ghost-marketplace-build-wheel.log`, wheel metadata inspection |
+| Frappe/Press scan | No blocking findings or scanner errors; advisory privilege/Guest warnings remain reviewed | `/tmp/ghost-marketplace-final.json`; suppression-disabled report also retained |
+| Existing repository hooks | Passed; rerun with the final staged files before commit | `/tmp/ghost-marketplace-precommit.log` |
+| Current v15/v16 fresh/upgrade and quality jobs | Require green results on the final develop revision | [Develop checks](https://github.com/muneeb141/ghost/actions?query=branch%3Adevelop) |
+
+The complete suite includes owned device A/B conversion to one verified account while an
+unverified third session remains untouched; fixed test OTP acceptance only in automated tests;
+HTML templates; Desk-role signup denial; native cleanup with staff/link protection and a real
+session/savepoint rollback regression. Translation-only message fixes followed the local suite;
+CI re-executes the complete suite on the final revision. Live provider/browser acceptance,
+consumer restore/timing, release version/notices and hosted Marketplace approval remain open.
+No zero-defect or complete security-audit guarantee is made.
 
 ## Decision
 
