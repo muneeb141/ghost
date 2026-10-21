@@ -119,11 +119,12 @@ class TestAuthenticationBoundaries(unittest.TestCase):
 
 	def test_magic_link_response_never_contains_login_secret(self):
 		self.db.get_value.return_value = None
-		template = frappe._dict(subject="test", response="test")
+		template = Mock()
+		template.get_formatted_subject.return_value = "test"
+		template.get_formatted_response.return_value = "test"
 		with (
 			patch.object(security, "require_owned_ghost", return_value="ghost_12345678@guest.local"),
 			patch.object(frappe, "get_doc", side_effect=[Mock(), template]),
-			patch.object(frappe, "render_template", return_value="test"),
 			patch.object(frappe, "sendmail"),
 			patch.object(frappe.utils, "get_url", return_value="https://example.invalid"),
 		):

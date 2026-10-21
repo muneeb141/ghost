@@ -12,7 +12,7 @@ def _current_user():
 
 
 @frappe.whitelist(methods=["POST"])
-def update_mobile_number(mobile_no=None, otp_code=None):
+def update_mobile_number(mobile_no: str | None = None, otp_code: str | None = None):
 	"""Set the signed-in user's mobile number after verifying that number by OTP."""
 	user = _current_user()
 	mobile_no = str(mobile_no or "").strip()

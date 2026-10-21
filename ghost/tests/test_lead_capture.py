@@ -65,3 +65,16 @@ class TestLeadCapture(GhostIntegrationCase):
 			send_lead_reminders()
 		send.assert_called_once()
 		self.assertEqual(frappe.db.get_value("Ghost Lead", name, "conversion_reminder_sent"), 1)
+
+	def test_reminder_uses_native_html_email_template(self):
+		self.capture()
+		name = frappe.db.get_value("Ghost Lead", {"ghost_email": self.source}, "name")
+		frappe.db.set_value("Ghost Lead", name, "creation", add_to_date(now_datetime(), hours=-25))
+		template = frappe.get_doc("Email Template", self.settings.lead_reminder_email_template)
+		template.use_html = 1
+		template.response_html = "<p>Continue {{ captured_email }}</p>"
+		template.save()
+		with patch("frappe.sendmail") as send:
+			send_lead_reminders()
+		self.assertIn(self.email, send.call_args.kwargs["content"])
+		self.assertIn("<p>Continue", send.call_args.kwargs["content"])

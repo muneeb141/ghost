@@ -8,7 +8,7 @@ from frappe.utils import add_to_date, now_datetime
 
 @frappe.whitelist(methods=["POST"])
 @rate_limit(limit=10, seconds=300)
-def send_magic_link(ghost_email, real_email):
+def send_magic_link(ghost_email: str, real_email: str):
 	"""Generate and send a magic link for conversion."""
 	from ghost.security import require_owned_ghost
 
@@ -66,12 +66,8 @@ def send_magic_link(ghost_email, real_email):
 		"real_email": real_email,
 		"expires_in_minutes": settings.magic_link_expiry_minutes,
 	}
-	subject = frappe.render_template(
-		email_template.subject, args
-	)  # nosemgrep: frappe-ssti - email template subject is strictly controlled by authenticated System Managers
-	content = frappe.render_template(
-		email_template.response, args
-	)  # nosemgrep: frappe-ssti - email template body is strictly controlled by authenticated System Managers
+	subject = email_template.get_formatted_subject(args)
+	content = email_template.get_formatted_response(args)
 
 	# Send email
 	try:
@@ -90,7 +86,7 @@ def send_magic_link(ghost_email, real_email):
 
 @frappe.whitelist(methods=["POST"])
 @rate_limit(limit=30, seconds=300)
-def consume_magic_link(token):
+def consume_magic_link(token: str):
 	"""Consumes a magic link token and converts the user."""
 	settings = frappe.get_single("Ghost Settings")
 	if not settings.enable_magic_link:

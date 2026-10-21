@@ -5,7 +5,7 @@ from frappe import _
 
 @frappe.whitelist(methods=["POST"])
 @frappe.rate_limiter.rate_limit(limit=10, seconds=60)
-def convert_with_google(ghost_email, id_token):
+def convert_with_google(ghost_email: str, id_token: str):
 	"""
 	Verify Google ID token and convert the ghost session to the Google user's email.
 	"""

@@ -89,3 +89,12 @@ class TestFrappeIdentityAPI(GhostIntegrationCase):
 		self.convert(source)
 		self.assertEqual(frappe.db.get_value("Ghost Lead", name, "ghost_email"), self.email)
 		self.assertEqual(frappe.db.get_value("Ghost Lead", name, "status"), "Converted")
+
+	def test_public_desk_role_conversion_is_denied_before_rename_or_revocation(self):
+		data = self.new_ghost()
+		self.configure(allow_system_user_login=1, default_user_role="System Manager")
+		with self.assertRaises(frappe.PermissionError):
+			self.convert(data["user"])
+		self.assertTrue(frappe.db.exists("User", data["user"]))
+		self.assertFalse(frappe.db.exists("User", self.email))
+		self.assertEqual(frappe.db.get_value("OAuth Bearer Token", data["access_token"], "status"), "Active")

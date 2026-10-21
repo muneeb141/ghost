@@ -50,6 +50,7 @@ def on_ghost_converted(ghost_email, real_email, conversion_mode, tokens=None):
 		# not break the remaining listeners or the conversion.
 		for handler in frappe.get_hooks("ghost_conversion_hooks"):
 			try:
+				# nosemgrep: frappe-codeinjection-eval -- installed app hooks only; see docs/MARKETPLACE_REVIEW.md.
 				frappe.call(
 					handler,
 					ghost_email=ghost_email,

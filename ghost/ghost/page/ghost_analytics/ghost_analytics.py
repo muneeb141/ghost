@@ -4,7 +4,7 @@ from frappe.utils import add_days, getdate, now_datetime
 
 
 @frappe.whitelist()
-def get_analytics_data(days=30, from_date=None, to_date=None):
+def get_analytics_data(days: int = 30, from_date: str | None = None, to_date: str | None = None):
 	"""Return conversion analytics for the Ghost Analytics page.
 
 	All metrics are derived from the User table (ghost sessions) and the

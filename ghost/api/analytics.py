@@ -4,7 +4,7 @@ from frappe.utils import add_days, getdate, now_datetime
 
 
 @frappe.whitelist()
-def get_conversion_funnel(from_date=None, to_date=None, days=None):
+def get_conversion_funnel(from_date: str | None = None, to_date: str | None = None, days: int | None = None):
 	"""
 	Exposes conversion funnel metrics for external BI tools.
 	Requires 'System Manager' role and 'enable_analytics_api' setting to be enabled.

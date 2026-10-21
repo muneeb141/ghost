@@ -1,57 +1,90 @@
+import re
+from functools import partial
+
 import frappe
-from frappe.utils import add_days, now_datetime
+from frappe import _
+from frappe.utils import add_days, get_datetime, now_datetime
 
 
 def delete_expired_ghost_users():
-	"""
-	Deletes Ghost users that have exceeded the expiration days.
-	Optimized to use bulk SQL deletions for high performance.
+	"""Expire only server-shaped anonymous Website Users through native deletion.
+
+	Linked users are disabled and retained; never force-delete business references.
+	The job wrapper owns the transaction. Each candidate has its own rollback savepoint.
 	"""
 	settings = frappe.get_single("Ghost Settings")
 	if not settings.enable_ghost_feature or not settings.enable_auto_cleanup:
 		return
-
-	expiration_days = settings.expiration_days or 30
-	# Safety check: Don't allow very short expiration by mistake, unless 0 (immediate? No, 0 usually means disable or massive bug risk).
-	if expiration_days < 1:
-		expiration_days = 1
-
-	batch_size = getattr(settings, "cleanup_batch_size", 500)
-
-	expiry_date = add_days(now_datetime(), -expiration_days)
-	ghost_domain = settings.ghost_email_domain or "guest.local"
-
-	# Find users to delete
-	users = frappe.db.sql(
-		"""
-		SELECT name FROM `tabUser`
-		WHERE creation < %s
-		AND email LIKE %s
-		AND name IN (
-			SELECT parent FROM `tabHas Role` WHERE role = %s
-		)
-		LIMIT %s
-	""",
-		(expiry_date, f"%@{ghost_domain}", settings.ghost_role, batch_size),
-		as_dict=True,
-	)
-
-	if not users:
+	# Native User deletion may log out through a request LoginManager and commit.
+	# This scheduled task must run without an interactive request context.
+	if getattr(frappe.local, "login_manager", None):
+		frappe.throw(_("Ghost cleanup must run in a background job or CLI context"))
+	role = settings.ghost_role or "Ghost"
+	if frappe.db.get_value("Role", role, "desk_access"):
 		return
+	expiration_days = max(1, int(settings.expiration_days or 30))
+	batch_size = min(100, max(1, int(settings.cleanup_batch_size or 100)))
+	domain = (settings.ghost_email_domain or "guest.local").lower()
+	pattern = rf"ghost_(?:[0-9a-f]{{8}}|[0-9a-f]{{32}})@{re.escape(domain)}"
+	cutoff = add_days(now_datetime(), -expiration_days)
+	users = frappe.get_all(
+		"User",
+		filters=[
+			["User", "creation", "<", cutoff],
+			["User", "user_type", "=", "Website User"],
+			["User", "enabled", "=", 1],
+			["User", "name", "like", f"ghost_%@{domain}"],
+			["Has Role", "role", "=", role],
+		],
+		pluck="name",
+		order_by="creation asc",
+		limit=batch_size,
+	)
+	for name in users:
+		if not re.fullmatch(pattern, name) or role not in frappe.get_roles(name):
+			continue
+		frappe.db.savepoint("ghost_cleanup_user")
+		try:
+			# Serialize against a verified conversion and recheck after acquiring the lock.
+			user = frappe.db.get_value(
+				"User", name, ["name", "enabled", "user_type", "creation"], as_dict=True, for_update=True
+			)
+			if (
+				not user
+				or not user.enabled
+				or user.user_type != "Website User"
+				or get_datetime(user.creation) >= get_datetime(cutoff)
+				or role not in frappe.get_roles(name)
+			):
+				continue
+			for token in frappe.get_all("OAuth Bearer Token", filters={"user": name}, pluck="name"):
+				frappe.delete_doc("OAuth Bearer Token", token, ignore_permissions=True)
+			frappe.delete_doc("User", name, ignore_permissions=True)
+		except frappe.LinkExistsError:
+			frappe.db.rollback(save_point="ghost_cleanup_user")
+			# Expire credentials but preserve linked leads, bookings and other native references.
+			frappe.db.set_value("User", name, "enabled", 0, update_modified=False)
+			frappe.db.set_value(
+				"OAuth Bearer Token", {"user": name}, "status", "Revoked", update_modified=False
+			)
+			# Native session deletion commits. Run only after the job transaction succeeds.
+			frappe.db.after_commit.add(partial(_clear_expired_sessions, name))
+			frappe.clear_cache(user=name)
+			frappe.logger("ghost_cleanup").info(
+				"Retained linked expired Ghost user %s; credentials disabled", name
+			)
+		except Exception:
+			frappe.db.rollback(save_point="ghost_cleanup_user")
+			frappe.log_error(title="Ghost cleanup failed", message=frappe.get_traceback())
 
-	ghost_names = tuple(u.name for u in users)
 
-	# Safety block: delete from all child tables first
-	# The syntax frappe.db.sql(..., (tuple,)) properly interpolates an IN clause.
+def _clear_expired_sessions(user):
+	"""After-commit cleanup; a savepoint rollback may have restored an enabled user."""
+	if frappe.db.get_value("User", user, "enabled"):
+		return
+	from frappe.sessions import clear_sessions
 
-	frappe.db.sql("DELETE FROM `tabHas Role` WHERE parent IN %s", (ghost_names,))
-	frappe.db.sql("DELETE FROM `tabUser Email` WHERE parent IN %s", (ghost_names,))
-	frappe.db.sql("DELETE FROM `tabBlock Module` WHERE parent IN %s", (ghost_names,))
-	frappe.db.sql("DELETE FROM `tabDefaultValue` WHERE parent IN %s", (ghost_names,))
-	frappe.db.sql("DELETE FROM `tabUser Social Login` WHERE parent IN %s", (ghost_names,))
-
-	# Finally, delete from User table
-	frappe.db.sql("DELETE FROM `tabUser` WHERE name IN %s", (ghost_names,))
+	clear_sessions(user=user, force=True)
 
 
 def expire_otps():
@@ -108,12 +141,8 @@ def send_lead_reminders():
 	for lead in leads:
 		try:
 			args = {"ghost_email": lead.ghost_email, "captured_email": lead.captured_email}
-			subject = frappe.render_template(
-				email_template.subject, args
-			)  # nosemgrep: frappe-ssti - lead reminder subject template is strictly configured by authenticated System Managers
-			content = frappe.render_template(
-				email_template.response, args
-			)  # nosemgrep: frappe-ssti - lead reminder response template is strictly configured by authenticated System Managers
+			subject = email_template.get_formatted_subject(args)
+			content = email_template.get_formatted_response(args)
 
 			frappe.sendmail(recipients=[lead.captured_email], subject=subject, content=content, now=True)
 

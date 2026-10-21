@@ -3,7 +3,7 @@ from frappe import _
 
 
 @frappe.whitelist(methods=["POST"])
-def capture_email(email, ghost_email=None):
+def capture_email(email: str, ghost_email: str | None = None):
 	"""
 	Capture a ghost user's email before full conversion.
 	Allows for abandoned session recovery.

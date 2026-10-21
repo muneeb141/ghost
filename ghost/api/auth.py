@@ -8,13 +8,21 @@ from ghost.security import (
 	normalize_recipients,
 	require_enabled_user,
 	require_owned_ghost,
+	require_public_signup_role,
 	require_trusted_login_origin,
 )
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=30, seconds=300)
-def login(otp, email=None, mobile_no=None, first_name=None, last_name=None, client_id=None):
+def login(
+	otp: str,
+	email: str | None = None,
+	mobile_no: str | None = None,
+	first_name: str | None = None,
+	last_name: str | None = None,
+	client_id: str | None = None,
+):
 	"""Passwordless login/signup using a recipient-bound Login OTP."""
 	require_trusted_login_origin()
 	email, mobile_no = normalize_recipients(email, mobile_no)
@@ -59,13 +67,7 @@ def create_new_user(email, mobile_no=None, first_name="User", last_name=None):
 	settings = frappe.get_single("Ghost Settings")
 	if not settings.get("allow_public_signup"):
 		frappe.throw(_("Public signup is disabled"), frappe.PermissionError)
-	default_role = settings.default_user_role
-	if (
-		default_role
-		and frappe.db.get_value("Role", default_role, "desk_access")
-		and not settings.get("allow_system_user_login")
-	):
-		frappe.throw(_("System user OTP login must be explicitly enabled"), frappe.PermissionError)
+	default_role = require_public_signup_role(settings)
 	user = frappe.get_doc(
 		{
 			"doctype": "User",
@@ -118,7 +120,7 @@ def generate_oauth_tokens(user, client_id=None):
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @rate_limit(limit=30, seconds=300)
-def refresh_bearer_token(refresh_token):
+def refresh_bearer_token(refresh_token: str):
 	if not refresh_token:
 		frappe.throw(_("Refresh token is required"), frappe.AuthenticationError)
 	# Resolve without a range lock, then lock the primary key and recheck live status.

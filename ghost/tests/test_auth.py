@@ -74,3 +74,10 @@ class TestGhostAuth(GhostIntegrationCase):
 		code = self.code()
 		with self.actor("Guest"):
 			self.assertEqual(login(code, email=self.email)["user"], self.email)
+
+	def test_staff_login_opt_in_does_not_allow_public_desk_role_signup(self):
+		self.configure(allow_system_user_login=1, default_user_role="System Manager")
+		code = self.code()
+		with self.actor("Guest"), self.assertRaises(frappe.PermissionError):
+			login(code, email=self.email)
+		self.assertFalse(frappe.db.exists("User", self.email))

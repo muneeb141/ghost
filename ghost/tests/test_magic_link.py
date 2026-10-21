@@ -72,3 +72,13 @@ class TestMagicLink(GhostIntegrationCase):
 		with self.actor(self.source), patch("frappe.sendmail", side_effect=RuntimeError("transport down")):
 			with self.assertRaises(frappe.ValidationError):
 				send_magic_link(self.source, self.email)
+
+	def test_native_html_email_template_is_used(self):
+		template = frappe.get_doc("Email Template", self.settings.magic_link_email_template)
+		template.use_html = 1
+		template.response_html = "<p>Verified link: {{ magic_link }}</p>"
+		template.save()
+		with self.actor(self.source), patch("frappe.sendmail") as send:
+			send_magic_link(self.source, self.email)
+		self.assertIn("Verified link:", send.call_args.kwargs["content"])
+		self.assertIn("/convert?token=", send.call_args.kwargs["content"])

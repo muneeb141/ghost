@@ -9,7 +9,7 @@ from frappe.utils import now_datetime
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 @frappe.rate_limiter.rate_limit(limit=100, seconds=3600)
-def create_ghost_session(email=None, fingerprint=None):
+def create_ghost_session(email: str | None = None, fingerprint: str | None = None):
 	"""Create a server-named anonymous identity. Fingerprints are not credentials."""
 	settings = frappe.get_single("Ghost Settings")
 	if not settings.enable_ghost_feature:
@@ -45,13 +45,13 @@ def create_ghost_session(email=None, fingerprint=None):
 
 @frappe.whitelist(methods=["POST"])
 def convert_to_real_user(
-	ghost_email,
-	real_email,
-	first_name=None,
-	last_name=None,
-	otp_code=None,
-	bypass_otp=False,
-	conversion_channel="OTP",
+	ghost_email: str,
+	real_email: str,
+	first_name: str | None = None,
+	last_name: str | None = None,
+	otp_code: str | None = None,
+	bypass_otp: bool = False,
+	conversion_channel: str = "OTP",
 ):
 	"""Public OTP conversion. Provider proofs are accepted only by private server paths."""
 	from ghost.ghost.doctype.ghost_otp.ghost_otp import verify
@@ -96,8 +96,12 @@ def _convert_verified_user(
 	target_exists = frappe.db.get_value("User", real_email, "name", for_update=True)
 	if target_exists:
 		require_enabled_user(real_email)
-	elif not settings.get("allow_public_signup"):
-		frappe.throw(_("Public signup is disabled"), frappe.PermissionError)
+	else:
+		if not settings.get("allow_public_signup"):
+			frappe.throw(_("Public signup is disabled"), frappe.PermissionError)
+		from ghost.security import require_public_signup_role
+
+		require_public_signup_role(settings)
 	logger.info(
 		f"Ghost conversion target existence check duration_ms={(time.monotonic() - existence_start) * 1000:.2f} "
 		f"ghost={ghost_email} real={real_email} target_exists={bool(target_exists)}"
@@ -183,13 +187,12 @@ def _convert_verified_user(
 		ghost_field = settings.lead_ghost_fieldname or "ghost_email"
 
 		if status_field:
-			frappe.db.sql(
-				f""" # nosemgrep: frappe-sql-format-injection - dynamic table and column names originate exclusively from validated administrator settings
-				UPDATE `tab{lead_dt}`
-				SET `{status_field}` = %s
-				WHERE `{ghost_field}` IN (%s, %s)
-			""",
-				(converted_status, ghost_email, real_email),
+			frappe.db.set_value(
+				lead_dt,
+				{ghost_field: ["in", [ghost_email, real_email]]},
+				status_field,
+				converted_status,
+				update_modified=False,
 			)
 
 	# Captured emails/fingerprints are not proof of ownership of other anonymous accounts.
@@ -238,9 +241,12 @@ def migrate_ghost_data_to_existing_user(ghost_email, real_email):
 	for rule in get_ghost_owned_reassignment_plan():
 		count = frappe.db.count(rule["doctype"], filters={rule["field"]: ghost_email})
 		if count:
-			frappe.db.sql(  # nosemgrep: frappe-sql-format-injection - doctypes and fields are verified internal application schemas
-				f"UPDATE `tab{rule['doctype']}` SET `{rule['field']}` = %s WHERE `{rule['field']}` = %s",
-				(real_email, ghost_email),
+			frappe.db.set_value(
+				rule["doctype"],
+				{rule["field"]: ghost_email},
+				rule["field"],
+				real_email,
+				update_modified=False,
 			)
 		migration_counts[f"{rule['doctype']}.{rule['field']}"] = count
 

@@ -139,7 +139,7 @@
             "label": "Fingerprint Expiry Days"
         },
         {
-            "description": "Role to assign to new users (Direct Signup) or after conversion (Ghost). If empty, no role changes are made.",
+            "description": "Portal role for new verified users; must not grant Desk access. Existing account roles are preserved. If empty, no additional role is assigned.",
             "fieldname": "default_user_role",
             "fieldtype": "Link",
             "label": "Default User Role",

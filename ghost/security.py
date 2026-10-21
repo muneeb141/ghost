@@ -39,6 +39,14 @@ def require_enabled_user(user):
 			frappe.throw(_("System user OTP login is disabled"), frappe.PermissionError)
 
 
+def require_public_signup_role(settings):
+	"""Staff login opt-in never authorizes public creation of Desk-capable users."""
+	role = settings.default_user_role
+	if role and frappe.db.get_value("Role", role, "desk_access"):
+		frappe.throw(_("The public signup role must not grant Desk access"), frappe.PermissionError)
+	return role
+
+
 def require_test_sandbox(settings):
 	if getattr(settings, "sandbox_mode", 0) and not frappe.flags.in_test:
 		frappe.throw(
