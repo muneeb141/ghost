@@ -110,3 +110,12 @@ The listing must describe tested capabilities without universal security, GDPR, 
 zero-defect claims. A 200px+ logo, current screenshots, valid publisher contact and support/privacy
 links need checking in the actual listing. The source includes a
 [privacy/data-handling disclosure](PRIVACY.md); confirm the listing points to its approved public URL.
+
+## Published listing review and prepared update
+
+The public listing was inspected on 2026-10-21. It still contains old fingerprint/automatic-merge,
+direct-SQL/performance and universal data-loss/privacy claims plus repeated description sections.
+The privacy resource leads to the older general GitHub Pages documentation. A concrete
+[replacement listing and update notice](MARKETPLACE_LISTING_DRAFT.md) is prepared for review;
+it is not submitted. The existing 300px square icon meets the documented minimum dimensions.
+Uploaded screenshots, source/release selection and hosted audit still require dashboard checks.

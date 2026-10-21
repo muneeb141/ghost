@@ -50,6 +50,7 @@ bench get-app --branch develop https://github.com/muneeb141/ghost
 
 See [contributor workflow](CONTRIBUTING.md), [authentication design and roadmap](docs/AUTH_DESIGN.md),
 and [Marketplace review and release gates](docs/MARKETPLACE_REVIEW.md).
+A [listing update draft](docs/MARKETPLACE_LISTING_DRAFT.md) is prepared for the approved major release.
 
 ## Install and configure
 
