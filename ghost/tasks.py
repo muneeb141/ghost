@@ -37,7 +37,7 @@ def delete_expired_ghost_users():
 			["Has Role", "role", "=", role],
 		],
 		pluck="name",
-		order_by="creation asc",
+		order_by="`tabUser`.`creation` asc",
 		limit=batch_size,
 	)
 	for name in users:

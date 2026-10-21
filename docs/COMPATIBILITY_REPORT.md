@@ -6,6 +6,10 @@ Comparison: public `main` at `672dfec9346dfd935c87fdc6ded554014a36d7f4`.
 
 ## Develop standards and release follow-up
 
+The first develop matrix passed v16 and quality but exposed a v15 joined-query ORDER BY
+ambiguity in cleanup. The query now explicitly orders by the User creation column; require
+the corrected matrix before promotion. The failed run is not counted as compatibility success.
+
 The follow-up uses native filtered database updates/EmailTemplate methods, typed public APIs,
 portal-only public signup roles and bounded native anonymous cleanup. It adds 14 database
 regressions and repairs packaging/site-specific helper issues. See
