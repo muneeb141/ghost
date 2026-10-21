@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-from ghost.ghost import __version__ as version
+from ghost import __version__ as version
 
 setup(
 	name="ghost",

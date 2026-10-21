@@ -6,13 +6,20 @@ authors = [
 description = "Guest User Identity Management"
 requires-python = ">=3.10"
 readme = "README.md"
+license = "MIT"
+license-files = ["license.txt"]
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
 ]
 
+[project.urls]
+Homepage = "https://github.com/muneeb141/ghost"
+Documentation = "https://github.com/muneeb141/ghost/blob/main/README.md"
+Issues = "https://github.com/muneeb141/ghost/issues"
+
 [build-system]
-requires = ["flit_core >=3.4,<4"]
+requires = ["flit_core >=3.11,<4"]
 build-backend = "flit_core.buildapi"
 
 # These dependencies are only installed when developer mode is enabled
