@@ -2,9 +2,9 @@ name: Ghost compatibility
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   push:
-    branches: [main, 'fix/**']
+    branches: [main, develop, 'fix/**', 'feat/**', 'feature/**', 'release/**']
   workflow_dispatch:
 
 defaults:

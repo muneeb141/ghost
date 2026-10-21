@@ -1,0 +1,62 @@
+name: Frappe quality
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop, 'fix/**', 'feat/**', 'feature/**', 'release/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      - uses: astral-sh/setup-uv@v6
+      - name: Install isolated developer tools
+        run: uv pip install --system pre-commit==4.3.0 semgrep==1.182.0 semantic-version==2.10.0 setuptools==80.9.0
+      - name: Run every configured lint hook
+        run: pre-commit run --all-files
+      - name: Check repository and migration contracts
+        run: python scripts/check_marketplace.py
+      - name: Verify package builds and the legacy setup shim
+        run: |
+          uv build --wheel --out-dir "$RUNNER_TEMP/ghost-dist"
+          python setup.py --version
+      - name: Download pinned official scanner rules
+        env:
+          RULES_SHA: 81a6e3d47a328249e8ddf04c586e493dd5553002
+          PRESS_SHA: 99347cbb73775997eac9b36d6f9a0d39295a3735
+        run: |
+          git init "$RUNNER_TEMP/ghost-frappe-rules"
+          git -C "$RUNNER_TEMP/ghost-frappe-rules" remote add origin https://github.com/frappe/semgrep-rules.git
+          git -C "$RUNNER_TEMP/ghost-frappe-rules" fetch --depth 1 origin "$RULES_SHA"
+          git -C "$RUNNER_TEMP/ghost-frappe-rules" checkout --detach FETCH_HEAD
+          git init "$RUNNER_TEMP/ghost-press"
+          git -C "$RUNNER_TEMP/ghost-press" remote add origin https://github.com/frappe/press.git
+          git -C "$RUNNER_TEMP/ghost-press" sparse-checkout set --cone press/marketplace/doctype/marketplace_app_audit
+          git -C "$RUNNER_TEMP/ghost-press" fetch --depth 1 --filter=blob:none origin "$PRESS_SHA"
+          git -C "$RUNNER_TEMP/ghost-press" checkout --detach FETCH_HEAD
+      - name: Scan and retain suppression-disabled evidence
+        env:
+          SEMGREP_SEND_METRICS: 'off'
+          SEMGREP_ENABLE_VERSION_CHECK: '0'
+        run: |
+          semgrep scan --config "$RUNNER_TEMP/ghost-frappe-rules/rules" --config "$RUNNER_TEMP/ghost-press/press/marketplace/doctype/marketplace_app_audit/checks/semgrep-rules" --metrics off --disable-version-check --json --output "$RUNNER_TEMP/ghost-semgrep.json" .
+          semgrep scan --config "$RUNNER_TEMP/ghost-frappe-rules/rules" --config "$RUNNER_TEMP/ghost-press/press/marketplace/doctype/marketplace_app_audit/checks/semgrep-rules" --metrics off --disable-version-check --disable-nosem --json --output "$RUNNER_TEMP/ghost-semgrep-unsuppressed.json" .
+          python scripts/check_marketplace.py --semgrep-report "$RUNNER_TEMP/ghost-semgrep.json"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ghost-marketplace-scan-evidence
+          path: ${{ runner.temp }}/ghost-semgrep*.json

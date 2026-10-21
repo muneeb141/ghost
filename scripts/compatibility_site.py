@@ -23,7 +23,8 @@ def check_schema():
 	assert not frappe.db.exists("DocType", "OTP")
 	assert not frappe.db.table_exists("OTP")
 	for operation in ("read", "create", "write"):
-		assert not frappe.has_permission("Ghost OTP", operation, user="Guest")
+		permission = frappe.has_permission("Ghost OTP", operation, user="Guest")
+		assert not permission
 	assert frappe.db.exists("Role", "Ghost")
 	assert not frappe.db.get_value("Role", "Ghost", "desk_access")
 
@@ -155,7 +156,7 @@ def run(site, stage):
 			raise ValueError("The CI site must explicitly allow tests")
 		frappe.set_user("Administrator")
 		globals()[stage]()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: frappe-manual-commit -- guarded disposable-site CLI fixture; see docs/MARKETPLACE_REVIEW.md.
 	except BaseException:
 		frappe.db.rollback()
 		raise

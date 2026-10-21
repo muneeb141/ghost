@@ -176,7 +176,8 @@ def check():
 		== payload["series_value"]
 	)
 	for operation in ("read", "create", "write"):
-		assert not frappe.has_permission("Ghost OTP", operation, user="Guest")
+		permission = frappe.has_permission("Ghost OTP", operation, user="Guest")
+		assert not permission
 	execute()
 	execute()
 	# Verify the real migrated code using production validation; do not log the code.
@@ -224,7 +225,7 @@ def run(site, stage):
 			raise ValueError("The fixture requires allow_tests on a disposable site")
 		frappe.set_user("Administrator")
 		globals()[stage]()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: frappe-manual-commit -- guarded disposable-site CLI fixture; see docs/MARKETPLACE_REVIEW.md.
 	except BaseException:
 		frappe.db.rollback()
 		raise

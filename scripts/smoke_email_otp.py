@@ -83,7 +83,7 @@ def run(site):
 		code = generate(email=email, purpose="Login", send=False)
 		otp_name = code["name"]
 		ghost_code = generate(email=ghost_target, purpose="Login", send=False)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep: frappe-manual-commit -- guarded disposable-site CLI fixture; see docs/MARKETPLACE_REVIEW.md.
 		frappe.destroy()
 		client = Client(application, Response, use_cookies=True)
 		base = f"http://{site}:8003"
@@ -147,7 +147,7 @@ def run(site):
 			frappe.get_single("Ghost Settings").update(original).save()
 			if client_name:
 				frappe.delete_doc("OAuth Client", client_name, force=True, ignore_permissions=True)
-			frappe.db.commit()
+			frappe.db.commit()  # nosemgrep: frappe-manual-commit -- guarded disposable-site CLI fixture; see docs/MARKETPLACE_REVIEW.md.
 			frappe.destroy()
 
 
