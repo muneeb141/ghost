@@ -4,6 +4,7 @@ import frappe
 from frappe.utils import add_to_date, now_datetime
 
 from ghost.api.auth import login
+from ghost.api.ghost import convert_to_real_user
 from ghost.api.otp import send_otp, validate_otp
 from ghost.ghost.doctype.ghost_otp.ghost_otp import generate, verify
 from ghost.tests.helpers import GhostIntegrationCase
@@ -83,3 +84,34 @@ class TestSandboxOTP(GhostIntegrationCase):
 		self.configure(sandbox_mode=1, sandbox_otp="000141")
 		with patch.dict(frappe.flags, {"in_test": False}), self.assertRaises(frappe.PermissionError):
 			generate(email=self.email)
+
+	def test_fixed_code_can_convert_an_owned_source_inside_automated_tests(self):
+		source = self.new_ghost()
+		self.configure(sandbox_mode=1, sandbox_otp="000141")
+		with self.actor(source["user"]):
+			result = convert_to_real_user(source["user"], self.email, otp_code="000141")
+		self.assertEqual(result["user"], self.email)
+		self.assertFalse(frappe.db.exists("User", source["user"]))
+		self.assertEqual(
+			frappe.db.get_value("OAuth Bearer Token", source["access_token"], "status"), "Revoked"
+		)
+
+	def test_saved_fixed_code_cannot_convert_outside_automated_tests(self):
+		source = self.new_ghost()
+		self.configure(sandbox_mode=1, sandbox_otp="000141")
+		with self.actor(source["user"]), patch.dict(frappe.flags, {"in_test": False}):
+			with self.assertRaises(frappe.PermissionError):
+				convert_to_real_user(source["user"], self.email, otp_code="000141")
+		self.assertTrue(frappe.db.exists("User", source["user"]))
+		self.assertFalse(frappe.db.exists("User", self.email))
+		self.assertEqual(
+			frappe.db.get_value("OAuth Bearer Token", source["access_token"], "status"), "Active"
+		)
+
+	def test_fixed_code_never_grants_ownership_of_another_ghost(self):
+		a, b = self.new_ghost(), self.new_ghost()
+		self.configure(sandbox_mode=1, sandbox_otp="000141")
+		with self.actor(a["user"]), self.assertRaises(frappe.PermissionError):
+			convert_to_real_user(b["user"], self.email, otp_code="000141")
+		self.assertFalse(frappe.db.exists("User", self.email))
+		self.assertEqual(frappe.db.get_value("User", b["user"], "enabled"), 1)
