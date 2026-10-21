@@ -24,13 +24,16 @@ regressions and repairs packaging/site-specific helper issues. See
 | Isolated wheel and legacy setup shim | Passed; canonical schema/patch/license packaged and correct version reported | `/tmp/ghost-marketplace-build-wheel.log`, wheel metadata inspection |
 | Frappe/Press scan | No blocking findings or scanner errors; advisory privilege/Guest warnings remain reviewed | `/tmp/ghost-marketplace-final.json`; suppression-disabled report also retained |
 | Existing repository hooks | Passed; rerun with the final staged files before commit | `/tmp/ghost-marketplace-precommit.log` |
-| Current v15/v16 fresh/upgrade and quality jobs | Require green results on the final develop revision | [Develop checks](https://github.com/muneeb141/ghost/actions?query=branch%3Adevelop) |
+| Reviewed runtime `67e44a8`: v15/v16 fresh install and public upgrade | Passed: 149 tests on each of four sites, migration twice and native HTTP smoke | [Compatibility run](https://github.com/muneeb141/ghost/actions/runs/39577384176) |
+| Reviewed runtime `67e44a8`: Frappe quality | Passed: all hooks, preflight, wheel/shim, 82 rules over 72 files; 19 warnings, no scanner errors or blocking findings | [Quality run](https://github.com/muneeb141/ghost/actions/runs/39577383969) |
+| Ecom consumer regression follow-up | Earlier full run passed 14 cases but the new conversion case exposed provider-pin drift and an implicit-role guard error; after the external consumer fixes, its targeted new/existing-shopper conversion case passed | `/tmp/ghost-marketplace-ecom-conversion.log`; full consumer acceptance remains separately tracked |
 
 The complete suite includes owned device A/B conversion to one verified account while an
 unverified third session remains untouched; fixed test OTP acceptance only in automated tests;
 HTML templates; Desk-role signup denial; native cleanup with staff/link protection and a real
 session/savepoint rollback regression. Translation-only message fixes followed the local suite;
-CI re-executes the complete suite on the final revision. Live provider/browser acceptance,
+Both corrected CI jobs re-executed the complete suite successfully. A subsequent documentation-only
+commit retains that runtime evidence; require green current-head checks before merging. Live provider/browser acceptance,
 consumer restore/timing, release version/notices and hosted Marketplace approval remain open.
 No zero-defect or complete security-audit guarantee is made.
 

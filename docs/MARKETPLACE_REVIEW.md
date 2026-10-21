@@ -52,7 +52,7 @@ Disabled retained identities are not repeatedly selected ahead of other eligible
 ## Scanner results and exceptions
 
 Initial combined scan: 75 findings, including blocking patterns. After the native API/type
-fixes: no scanner errors or unsuppressed blocking findings; remaining warnings concern the
+fixes: no scanner errors or unsuppressed blocking findings; 19 remaining warnings (12 distinct source sites; overlapping rule sets repeat privilege warnings) concern the
 intentional Guest authentication endpoints and `frappe.set_user` boundaries. The final CI
 artifacts/counts are authoritative for the revision being reviewed.
 
@@ -92,7 +92,9 @@ Warnings in scripts cover their guarded setup/teardown only.
 
 Before promoting the major release:
 
-- [ ] Exact candidate passes Frappe quality and both v15/v16 fresh/upgrade jobs.
+- [x] Reviewed runtime `67e44a8` passes Frappe quality and both v15/v16 fresh/upgrade jobs.
+  [Compatibility](https://github.com/muneeb141/ghost/actions/runs/39577384176) /
+  [Quality](https://github.com/muneeb141/ghost/actions/runs/39577383969). Require green checks again on the revision being merged.
 - [ ] Review unsuppressed scanner evidence and source trust boundaries.
 - [ ] Rehearse a representative consumer's upgrade, rollback restore and native rename/cleanup timing.
 - [ ] Verify real mailbox delivery, configured SMS and Google sign-in for the features advertised.
